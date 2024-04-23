@@ -1,6 +1,6 @@
 
 //MainClock.ino
-// Contains the core of the clock, all the timer used to initiate sensor rear and the main Interrupt
+// Contains the core of the clock, all the timer used to initiate sensor read and the main Interrupt
 
 // UserModes.ino
 // Contains the rountines used to interact with Date/Time/Chrono/Countdown and Dim values using the Keypad
@@ -86,8 +86,8 @@ int TenthsSecond = 2;
 
 int HourTZAlt   = 0;                    // Hour for the TimeZone/Alternate display
 int MinuteTZAlt = 0;                    // Minute for the TimeZone/Alternate display
-int TimeZoneOffsetHr  = 0;  // Addr 7   // Offset between Hour and HourTZAlt
-int TimeZoneOffsetMi  = 0;  // Addr 8   // Offset between Minute and MinuteTZAlt
+int TimeZoneOffsetHr  = 12;  // Addr 7   // Offset between Hour and HourTZAlt
+int TimeZoneOffsetMi  = 00;  // Addr 8   // Offset between Minute and MinuteTZAlt
 
 bool DSTMode = false;       // Addr 9   // If the DaylightSavingTime is set
 
@@ -96,7 +96,7 @@ bool IsChronoActive = false; // Addr 10
 int ChronoHour   = 0;        // Addr 11
 int ChronoMinute = 0;        // Addr 920-929   // wear leveling between Addr 920 and 929 to limit write near 100K over ~2Y, limited to 10s precision, based on CrHour%10
 int ChronoSecond = 0;        // Addr 940-979   // wear leveling between Addr 940 and 979 to limit write near 100K over ~2Y, limited to 15s precision, based on ((CrHour%2)*20)+(CrMinute%20)
-int ChronoTenthsSecond = 0;  //                  
+int ChronoTenthsSecond   = 0;                 
 int ChronoThSecondOffset = 0;
 
 // Structure for storing a lap
@@ -153,7 +153,10 @@ char KeyPressVal   = NULL;   // Value of the current key being pressed, set by R
 bool NewKeyPress   = false;  // Set by ReadKeypad(), resetted by the fonction consuming the keypress
 int  CursorPos     = 7;      // Position of the edit cursor
 bool ToggleCurVal  = false;  // Set by ToggleCursor() to control blinking of the char under the cursor
-char ToggleCurChar = '.';    // Stores the char at CursorPos to be edited in Update Modes
+byte ToggleCurChar = '.';    // Stores the char at CursorPos to be edited in Update Modes
+
+// Serial output out of sync buffer
+String MessageBuffer;
 
 // Inputs
 const int ClockLockPin = A0; // Pin Analog 0 receives the lock signal from the Frequency Standard
@@ -315,8 +318,8 @@ void setup() {
     EEPROM.update(EEPROM_HOUR + 1, 23);
     EEPROM.update(EEPROM_MINUTE + 1, 0); // ((Day%4)*(Hour+1))+Hour
     EEPROM.update(EEPROM_SECOND + 0, 0); // ((Hour%12)*(Minute+1))+Minute
-    EEPROM.update(EEPROM_TIMEZONEOFFSETHR, 0);
-    EEPROM.update(EEPROM_TIMEZONEOFFSETMI, 0);
+    EEPROM.update(EEPROM_TIMEZONEOFFSETHR, 12);
+    EEPROM.update(EEPROM_TIMEZONEOFFSETMI, 00);
     EEPROM.update(EEPROM_DTSMODE, 0);
     EEPROM.update(EEPROM_CHRONOACTIVE, 0);
     EEPROM.update(EEPROM_CHRONOHOUR, 0); 
@@ -548,7 +551,7 @@ bool UpdateTenthsSec(void *) {
       }
     break;  
     case 4: // Output status over Serial, available on the pin B of the rear Data jack (2J2)
-      if (IsCountDownActive) {
+      if (IsCountDownActive || (Second+2)%5 == 0) {
         Serial.print("COUNTDOWN:");
         Serial.print(CountDownHour);
         Serial.print("-");
@@ -558,13 +561,15 @@ bool UpdateTenthsSec(void *) {
       }
     break;     
     case 5: // Output status over Serial, available on the pin B of the rear Data jack (2J2)
-      if (IsChronoActive) {
+      if (IsChronoActive || (Second+4)%5 == 0) {
         Serial.print("CHRONO:");
         Serial.print(ChronoHour);
         Serial.print("-");
         Serial.print(ChronoMinute);
         Serial.print("-");
-        Serial.println(ChronoSecond);
+        Serial.print(ChronoSecond);
+        Serial.print("/");
+        Serial.println(ChronoThSecondOffset);
       }
     break;    
     case 6: // Write chrono to EEPROM, every ~15 seconds, but 1~2 seconds out of sync with main clock
@@ -577,14 +582,24 @@ bool UpdateTenthsSec(void *) {
       }
     break;
     case 7: // Output status over Serial, available on the pin B of the rear Data jack (2J2)
-      if (Hour == 0 && Minute == 0 && Second == 0) {
+      if (Second%5 == 0) {
         Serial.print("DATE:");
         Serial.print(Year);
         Serial.print("-");
         Serial.print(Month);
         Serial.print("-");
         Serial.println(Day);
-      }
+      } else if ((Second+1)%5 == 0) {
+        Serial.print("TIMEZONEALT:");
+        Serial.print(HourTZAlt);
+        Serial.print("-");
+        Serial.println(MinuteTZAlt);
+      } else if ((Second+2)%5 == 0)
+        IsCountDownActive ? Serial.println("ACTION:COUNTDOWN-START") :  Serial.println("ACTION:COUNTDOWN-STOP");
+      else if ((Second+4)%5 == 0) 
+        IsChronoActive ? Serial.println("ACTION:CHRONO-START") :  Serial.println("ACTION:CHRONO-STOP");
+      else if ((Second+3)%5 == 0) 
+        Serial.println("ACTION:DIM-" + String(LedIntensity));      
     break;
     case 8: // Write countdown to EEPROM, every ~15 seconds for CountDown, but 3~4 seconds out of sync with main clock
       if ((Second+3)%15 == 0) {
@@ -595,6 +610,12 @@ bool UpdateTenthsSec(void *) {
       } else if((Second+4)%15 == 0 && CountDownMinute == 0) {
         EEPROM.update(EEPROM_COUNTDOWNHOUR, CountDownHour/100);
         EEPROM.update(EEPROM_COUNTDOWNHOUR+1, CountDownHour%100);
+      }
+    break;  
+    case 9: // Output message buffer over Serial, available on the pin B of the rear Data jack (2J2)
+      if (MessageBuffer != "") {
+        Serial.println(MessageBuffer);
+        MessageBuffer = "";
       }
     break;
   }

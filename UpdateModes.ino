@@ -1,4 +1,3 @@
-
 // Contains the rountines used to update Date/Time/Countdown and LockMode values using the Keypad
 // The refresh rate is about 50ms and mostly controled by the MainClock routine UpdateDisplay()
 //   calling routines here in UpdateModes
@@ -330,7 +329,7 @@ void CommitTimeChange(int CursorPos, int NewVal) {
 // Keep AlternateTimeZone up to date when Time is changed or if TimeZone edited
 void UpdateTZAlt(void *) {
   // Compute new Alt values
-  HourTZAlt   = Hour   + TimeZoneOffsetHr;
+  HourTZAlt = Hour + (TimeZoneOffsetHr-12);
   MinuteTZAlt = Minute + TimeZoneOffsetMi;
 
   // Keep those in boundaries

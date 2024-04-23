@@ -63,12 +63,14 @@ void UserGetCountDown(void *) {
             EEPROM.update(EEPROM_COUNTDOWNSECONDOVER, 0);
             IsCountDownActive = false;
             IsCountDownDone = false;
+            MessageBuffer = "ACTION:COUNTDOWN-RESET";
             EEPROM.update(EEPROM_COUNTDOWNACTIVE, false);
           }
           break;
         case 'E': // Start/Stop the CountDown
           if (LockMode < 4)
             IsCountDownActive = !IsCountDownActive;
+            IsCountDownActive ? MessageBuffer = "ACTION:COUNTDOWN-START" : MessageBuffer = "ACTION:COUNTDOWN-STOP";
             EEPROM.update(EEPROM_COUNTDOWNACTIVE, IsCountDownActive);
           break;
         default: // Number Keys, No Action
@@ -143,6 +145,9 @@ void UserGetChrono(void *) {
               ChronoSecond       = 0;
               ChronoTenthsSecond = 0;
               ChronoThSecondOffset = 0;
+              MessageBuffer = "CHRONO:" + String(ChronoHour) + "-" +
+                              String(ChronoMinute) + "-" + String(ChronoSecond) + "/" + 
+                              String(ChronoThSecondOffset);
             } else {
               ChronoLap[Lap].Hour         = 0;
               ChronoLap[Lap].Minute       = 0;
@@ -160,6 +165,7 @@ void UserGetChrono(void *) {
           if (LockMode < 4) {
             if (ChronoLapMode == 0) {
               IsChronoActive = !IsChronoActive;
+              IsChronoActive ? MessageBuffer = "ACTION:CHRONO-START" : MessageBuffer = "ACTION:CHRONO-STOP";
               EEPROM.update(EEPROM_CHRONOACTIVE, IsChronoActive);
               if (IsChronoActive)
                 ChronoThSecondOffset = TenthsSecond;
@@ -227,8 +233,12 @@ void UserChangeDate(void *) {
             if (!DSTMode && Hour < 23) {
               Hour += 1;
               DSTMode = true;
+              TimeZoneOffsetHr--;
+              
               EEPROM.update(EEPROM_HOUR+(Hour%2), Hour);
               EEPROM.update(EEPROM_DTSMODE, DSTMode?1:0);
+
+              EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr);
             }
           }
           break;
@@ -238,8 +248,12 @@ void UserChangeDate(void *) {
             if (DSTMode && Hour > 0) {
               Hour -= 1;
               DSTMode = false;
+              TimeZoneOffsetHr++;
+
               EEPROM.update(EEPROM_HOUR+(Hour%2), Hour);
               EEPROM.update(EEPROM_DTSMODE, DSTMode?1:0);
+
+              EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr);
             }
           }
           break;
@@ -269,7 +283,7 @@ void UserChangeTime(void *) {
   lc.setIntensity(1,LedIntensity);
 
   // 
-  if (TimeZoneOffsetHr + TimeZoneOffsetMi == 0)
+  if (TimeZoneOffsetHr == 12 && TimeZoneOffsetMi == 00)
     DisplayCurrentDate(-1, false);
   else
     DisplayTZAltTime(NULL);
@@ -294,82 +308,45 @@ void UserChangeTime(void *) {
           break;
         case 'R': // Increment the Alternate TimeZone offset
           if (LockMode < 3) { 
-            if (TimeZoneOffsetHr > 0) {
-              if (TimeZoneOffsetMi == 30 ) {
-                TimeZoneOffsetMi = 0;
-                TimeZoneOffsetHr++;
-              } if (TimeZoneOffsetMi == -30 ) 
-                TimeZoneOffsetMi = 0;
-              else
-                TimeZoneOffsetMi = 30;
-            } else if (TimeZoneOffsetHr == 0) {
-              if (TimeZoneOffsetMi == 30 ) {
-                TimeZoneOffsetMi = 0;
-                TimeZoneOffsetHr++;
-              }
-              else if (TimeZoneOffsetMi == 0 )
-                TimeZoneOffsetMi = 30;
-              else 
-                TimeZoneOffsetMi = 0;
-            } else {
-              if (TimeZoneOffsetMi == -30 )
-                TimeZoneOffsetMi = 0;
-              else {
-                TimeZoneOffsetMi = -30;
-                TimeZoneOffsetHr++;
-              }
+            if (TimeZoneOffsetMi == 0)
+              TimeZoneOffsetMi = 30;
+            else {
+              TimeZoneOffsetMi = 0;
+              TimeZoneOffsetHr++;
             }
 
-            if (TimeZoneOffsetHr >= 13)
-              TimeZoneOffsetHr = -11;
+            if (TimeZoneOffsetHr > 24)
+              TimeZoneOffsetHr = 1;
 
-            EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr+12);
-            EEPROM.update(EEPROM_TIMEZONEOFFSETMI, TimeZoneOffsetMi+30);
+            EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr);
+            EEPROM.update(EEPROM_TIMEZONEOFFSETMI, TimeZoneOffsetMi);
 
             UpdateTZAlt(NULL); 
-         }
+          }
           break;
         case 'L': // Decrement the Alternate TimeZone offset
           if (LockMode < 3) {
-            if (TimeZoneOffsetHr > 0) {
-              if (TimeZoneOffsetMi == 30 )
-                TimeZoneOffsetMi = 0;
-              else {
-                TimeZoneOffsetMi = 30;
-                TimeZoneOffsetHr--;
-              }
-            } else if (TimeZoneOffsetHr == 0) {
-              if (TimeZoneOffsetMi == 30 )
-                TimeZoneOffsetMi = 0;
-              else if (TimeZoneOffsetMi == 0 )
-                TimeZoneOffsetMi = -30;
-              else {
-                TimeZoneOffsetMi = 0;
-                TimeZoneOffsetHr--;
-              }
-            } else {
-              if (TimeZoneOffsetMi == -30 ) {
-                TimeZoneOffsetMi = 0;
-                TimeZoneOffsetHr--;
-              } else
-                TimeZoneOffsetMi = -30;
-            }
+            if (TimeZoneOffsetMi == 0) {
+              TimeZoneOffsetMi = 30;
+              TimeZoneOffsetHr--;
+            } else
+              TimeZoneOffsetMi = 0;
 
-            if (TimeZoneOffsetHr <= -12)
-              TimeZoneOffsetHr = 12;
+            if (TimeZoneOffsetHr < 0)
+              TimeZoneOffsetHr = 23;
 
-            EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr+12);
-            EEPROM.update(EEPROM_TIMEZONEOFFSETMI, TimeZoneOffsetMi+30);
+            EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr);
+            EEPROM.update(EEPROM_TIMEZONEOFFSETMI, TimeZoneOffsetMi);
 
             UpdateTZAlt(NULL); 
           }
           break;
         case 'C': // Reset the Alternate TimeZone offset
           if (LockMode < 3) {
-            TimeZoneOffsetHr = 0;
-            TimeZoneOffsetMi = 0;
-            EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr+12);
-            EEPROM.update(EEPROM_TIMEZONEOFFSETMI, TimeZoneOffsetMi+30);
+            TimeZoneOffsetHr = 12;
+            TimeZoneOffsetMi = 00;
+            EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr);
+            EEPROM.update(EEPROM_TIMEZONEOFFSETMI, TimeZoneOffsetMi);
             MinuteTZAlt = Minute;
             HourTZAlt   = Hour;
           }
@@ -447,6 +424,7 @@ void UserChangeDim(void *) {
         lc.shutdown(1,false);
         LedIntensity = KeyPressVal - '0';
     }
+    MessageBuffer = "ACTION:DIM-" + String(LedIntensity);  
     EEPROM.update(EEPROM_LEDINTENSITY, LedIntensity);
   }
 
@@ -503,15 +481,15 @@ void GetEEPROMVal(void *) {
   }
 
   //Alternate TimeZone
-  TimeZoneOffsetHr = EEPROM.read(EEPROM_TIMEZONEOFFSETHR)-12;
-  TimeZoneOffsetMi = EEPROM.read(EEPROM_TIMEZONEOFFSETMI)-30;
+  TimeZoneOffsetHr = EEPROM.read(EEPROM_TIMEZONEOFFSETHR);
+  TimeZoneOffsetMi = EEPROM.read(EEPROM_TIMEZONEOFFSETMI);
   // Drop to Default if out of bounds
-  if (TimeZoneOffsetHr > 12 || TimeZoneOffsetHr < -11 
-       || !(TimeZoneOffsetMi == 0 || TimeZoneOffsetMi == 30 || TimeZoneOffsetMi == -30) ) {
-    TimeZoneOffsetHr = 0;
+  if (TimeZoneOffsetHr > 24 || TimeZoneOffsetHr < 0 
+       || !(TimeZoneOffsetMi == 0 || TimeZoneOffsetMi == 30 ) ) {
+    TimeZoneOffsetHr = 12;
     TimeZoneOffsetMi = 0;
-    EEPROM.update(EEPROM_TIMEZONEOFFSETHR, 0);
-    EEPROM.update(EEPROM_TIMEZONEOFFSETMI, 0);
+    EEPROM.update(EEPROM_TIMEZONEOFFSETHR, 12);
+    EEPROM.update(EEPROM_TIMEZONEOFFSETMI, 00);
   }
   UpdateTZAlt(NULL);
 

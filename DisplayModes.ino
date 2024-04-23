@@ -977,10 +977,51 @@ void DisplayTestPatern(void *) {
   lc.setRow(1,4,SpecChar[TEST]);
   lc.setRow(1,5,SpecChar[TEST]);
   lc.setRow(1,6,SpecChar[TEST]);
-  lc.setRow(1,7,SpecChar[TEST]);
+  //lc.setRow(1,7,SpecChar[TEST]);
 
   digitalWrite(LedTickPin, HIGH);
   digitalWrite(LedLockPin, HIGH);
+
+  //Remove ASCII values left from UpdateModes
+  if (ToggleCurChar <= 0x7F) {
+    ToggleCurChar = 0b10000000; // ' .'
+  }
+
+  // React to a new Keypress
+  if (NewKeyPress) {
+    NewKeyPress = false; // Consume the Keypress
+
+    switch (KeyPressVal) {
+      case 'U':
+        ToggleCurChar = 0b10111110; //'U.';
+        break;
+      case 'R':
+        ToggleCurChar = 0b10000101; // 'r.'
+        break;
+      case 'D':
+        ToggleCurChar = 0b10111101; //'d.';
+        break;
+      case 'L':
+        ToggleCurChar = 0b10001110; //'L.';
+        break;
+      case 'C':
+        ToggleCurChar = 0b11001110; //'C.';
+        break;
+      case 'E':
+        ToggleCurChar = 0b11001111; //'E.';
+        break;
+      default: 
+        ToggleCurChar = SpecChar[(KeyPressVal - '0') + 10]; // N.
+    }
+
+  }
+
+  // Display the current state
+  if(ToggleCurVal)
+    lc.setRow(1,7,ToggleCurChar);
+  else
+    lc.setRow(1,7,SpecChar[TEST]);
+
 }
 
 //     #####     #####     #####     #####     #####
