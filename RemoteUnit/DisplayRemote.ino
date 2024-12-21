@@ -266,9 +266,9 @@ void DisplayBlinkingDot(void *) {
 //     #####     #####     #####     #####     #####
 
 // Set every single segments to ON at full brightness
-void DisplayTestPatern(void *) {
+void DisplayTestPatern(int LedMode) {
   lc.shutdown(0,false);
-  lc.setIntensity(0,0xf);
+  lc.setIntensity(0, LedMode==1 ? 0xf : LedIntensity );
   
   lc.setRow(0,7,SpecChar[TEST]);
   lc.setRow(0,6,SpecChar[TEST]);

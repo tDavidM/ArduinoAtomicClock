@@ -50,6 +50,9 @@ const int EEPROM_LEDINTENSITY = 16;
 
 bool LockIndicatorDot = false; // Blinking dot as a lock indicator
 
+//Buffer used for serial data recv
+String RecvBuff;
+
 // Inputs
 const int ClockTickPin = 2;  // Pin 2 receives the PPS (Pulse Per Second) from the Main Clock and triggers an Interrupt
 const int KnobPin1     = 5;  // Pins D5 to D12 are connected to a rotary switch/knob and each pin correspond to a different position
@@ -126,7 +129,7 @@ void setup() {
   lc.clearDisplay(0);
 
   LedIntensity = EEPROM.read(EEPROM_LEDINTENSITY);
-  if (LedIntensity > 15) {
+  if (LedIntensity > 15 || LedIntensity < 0 ) {
     LedIntensity = 8;
     EEPROM.update(EEPROM_LEDINTENSITY, 8);
   }
@@ -298,86 +301,215 @@ void ClockTick(void *) {
 
 // Runs every 100ms, keep everything up to date by listening on Serial
 bool UpdateRemote(void *) {
-  String RecvBuff, SubBuff, TertiaryBuff;
-  int TokenPos = 0;
+  char CharBuff[32], MsgType[16], MsgVal[24], MsgElem[12], MsgSubElem[8];
+  char * TokenPos;
+  char * TokenEndPos;
 
   //If any bytes are available from Serial
   if (Serial.available() > 0) {
     RecvBuff = Serial.readString();
     RecvBuff.trim();
+    //Serial.print(RecvBuff);
+    //Serial.print(" -> ");
 
     if (RecvBuff != "") {
-      TokenPos = RecvBuff.indexOf(':');
-      SubBuff  = RecvBuff.substring(TokenPos+1);
-      //Serial.println(RecvBuff.substring(TokenPos+1));
+      //Copy the recv buffer to a char array for processing (had issues with String and memory management)
+      RecvBuff.toCharArray(CharBuff, sizeof(CharBuff));   
+      CharBuff[sizeof(CharBuff)-1] = '\0'; //Force a NULL char at the end for safety
+      //Serial.print(CharBuff);
+      //Serial.print(" -> ");
 
-      if (RecvBuff.substring(0,TokenPos) == "SOURCE") {
-        if (SubBuff == "INTERNAL")
-          ClockTick(NULL);
-      } else if (RecvBuff.substring(0,TokenPos) == "TIME") {
-        //Serial.println(SubBuff);
-  
-        //Serial.print( SubBuff.substring(0, SubBuff.indexOf('-')) );
-        //Serial.print(':');
-        //Serial.print( SubBuff.substring(SubBuff.indexOf('-')+1, SubBuff.lastIndexOf('-')) );
-        //Serial.print(':');
-        //Serial.println( SubBuff.substring(SubBuff.lastIndexOf('-')+1) );
+      //Different messages structures
+      //MSGTYPE:ELEM-ELEM
+      //MSGTYPE:ELEM-ELEM-ELEM
+      //MSGTYPE:ELEM-ELEM-ELEM/SUBELEM
+      //MSGTYPE:ELEM-SUBELEM
 
-        Hour   = SubBuff.substring(0, SubBuff.indexOf('-')).toInt();
-        Minute = SubBuff.substring(SubBuff.indexOf('-')+1, SubBuff.lastIndexOf('-')).toInt();
-        Second = SubBuff.substring(SubBuff.lastIndexOf('-')+1).toInt();
+      //Split message from Type:Val
+      TokenPos = strchr(CharBuff, ':');
+      if (TokenPos != NULL) {
+        strncpy(MsgType, CharBuff, TokenPos-CharBuff);
+        MsgType[TokenPos-CharBuff] = '\0';
+        MsgType[sizeof(MsgType)-1] = '\0'; //Force a NULL char at the end for safety
+        //Serial.print(MsgType);
+        //Serial.print(":");
 
-      } else if (RecvBuff.substring(0,TokenPos) == "TIMEZONEALT") {
-        HourTZAlt   = SubBuff.substring(0, SubBuff.indexOf('-')).toInt();
-        MinuteTZAlt = SubBuff.substring(SubBuff.indexOf('-')+1).toInt();
+        strncpy(MsgVal, TokenPos+1, sizeof(MsgVal));
+        MsgVal[sizeof(MsgVal)-1] = '\0'; //Force a NULL char at the end for safety
+        //Serial.println(MsgVal);
 
-      } else if (RecvBuff.substring(0,TokenPos) == "DATE") {
-        Year   = SubBuff.substring(0, SubBuff.indexOf('-')).toInt();
-        Month = SubBuff.substring(SubBuff.indexOf('-')+1, SubBuff.lastIndexOf('-')).toInt();
-        Day = SubBuff.substring(SubBuff.lastIndexOf('-')+1).toInt();
+        //Serial.println((int)(TokenPos-CharBuff));
 
-      } else if (RecvBuff.substring(0,TokenPos) == "CHRONO") {
-        ChronoHour   = SubBuff.substring(0, SubBuff.indexOf('-')).toInt();
-        ChronoMinute = SubBuff.substring(SubBuff.indexOf('-')+1, SubBuff.lastIndexOf('-')).toInt();
-        TertiaryBuff   = SubBuff.substring(SubBuff.lastIndexOf('-')+1).toInt();
+        if (strcmp(MsgType, "SOURCE") == 0 ) {
+          if (strcmp(MsgVal, "INTERNAL") == 0)
+            ClockTick(NULL);
 
-        ChronoSecond          = TertiaryBuff.substring(0, TertiaryBuff.indexOf('/')).toInt();
-        ChronoThSecondOffset  = TertiaryBuff.substring(TertiaryBuff.indexOf('/')+1).toInt();
+        } else if (strcmp(MsgType, "TIME") == 0 ) {
+          //Split elements from Val
+          TokenPos = strchr(MsgVal, '-');
+          if (TokenPos != NULL) {
+            strncpy(MsgElem, MsgVal, TokenPos-MsgVal);
+            MsgElem[TokenPos-MsgVal] = '\0';
+            MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+            //Serial.println(MsgElem);
+            Hour = atoi(MsgElem); //sscanf(MsgElem, "%d", &Hour);
 
-      } else if (RecvBuff.substring(0,TokenPos) == "COUNTDOWN") {
-        CountDownHour   = SubBuff.substring(0, SubBuff.indexOf('-')).toInt();
-        CountDownMinute = SubBuff.substring(SubBuff.indexOf('-')+1, SubBuff.lastIndexOf('-')).toInt();
-        CountDownSecond = SubBuff.substring(SubBuff.lastIndexOf('-')+1).toInt();
+            TokenEndPos = strrchr(MsgVal, '-');
+            if (TokenEndPos != NULL) {
+              strncpy(MsgElem, TokenPos+1, TokenEndPos-(TokenPos+1));
+              MsgElem[TokenEndPos-(TokenPos+1)] = '\0';
+              MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+              //Serial.println(MsgElem);
+              Minute = atoi(MsgElem); //sscanf(MsgElem, "%d", &Minute);
 
-      } else if (RecvBuff.substring(0,TokenPos) == "ACTION") {
-        TertiaryBuff = SubBuff.substring(SubBuff.indexOf('-')+1);
-
-        //Serial.println("act:" + TertiaryBuff + "/" + SubBuff.substring(0, SubBuff.indexOf('-')) );
-
-        if (SubBuff.substring(0, SubBuff.indexOf('-')) == "CHRONO") {
-          if (TertiaryBuff.substring(TertiaryBuff.indexOf('/')+1) == "START")
-            IsChronoActive = true;
-          else if (TertiaryBuff.substring(TertiaryBuff.indexOf('/')+1) == "STOP")
-            IsChronoActive = false;
-        } else if (SubBuff.substring(0, SubBuff.indexOf('-')) == "COUNTDOWN") {
-          if (TertiaryBuff.substring(TertiaryBuff.indexOf('/')+1) == "START")
-            IsCountDownActive = true;
-          else if (TertiaryBuff.substring(TertiaryBuff.indexOf('/')+1) == "STOP")
-            IsCountDownActive = false;
-          else if (TertiaryBuff.substring(TertiaryBuff.indexOf('/')+1) == "RESET") {
-            IsCountDownActive = false;
-            CountDownHour   = 0;
-            CountDownMinute = 0;
-            CountDownSecond = 0;
+              strncpy(MsgElem, TokenEndPos+1, sizeof(MsgElem));
+              MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+              //Serial.println(MsgElem);
+              Second = atoi(MsgElem); //sscanf(MsgElem, "%d", &Second);
+            }
           }
-        } else if (SubBuff.substring(0, SubBuff.indexOf('-')) == "DIM") {
-          LedIntensity = max(TertiaryBuff.substring(TertiaryBuff.indexOf('/')+1).toInt(), 0);
-          lc.setIntensity(0,LedIntensity);
-          EEPROM.update(EEPROM_LEDINTENSITY, LedIntensity);
-        }
-      } //else {
-        //Serial.println(RecvBuff);
-      //}
+
+        } else if (strcmp(MsgType, "TIMEZONEALT") == 0 ) {
+          //Split elements from Val
+          TokenPos = strchr(MsgVal, '-');
+          if (TokenPos != NULL) {
+            strncpy(MsgElem, MsgVal, TokenPos-MsgVal);
+            MsgElem[TokenPos-MsgVal] = '\0';
+            MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+            //Serial.println(MsgElem);
+            HourTZAlt = atoi(MsgElem); //sscanf(MsgElem, "%d", &HourTZAlt);
+
+            strncpy(MsgElem, TokenPos+1, sizeof(MsgElem));
+            MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+            //Serial.println(MsgElem);
+            MinuteTZAlt = atoi(MsgElem); //sscanf(MsgElem, "%d", &MinuteTZAlt);
+            
+          }
+
+        } else if (strcmp(MsgType, "DATE") == 0 ) {
+          //Split elements from Val
+          TokenPos = strchr(MsgVal, '-');
+          if (TokenPos != NULL) {
+            strncpy(MsgElem, MsgVal, TokenPos-MsgVal);
+            MsgElem[TokenPos-MsgVal] = '\0';
+            MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+            //Serial.println(MsgElem);
+            Year = atoi(MsgElem); //sscanf(MsgElem, "%d", &Year);
+
+            TokenEndPos = strrchr(MsgVal, '-');
+            if (TokenEndPos != NULL) {
+              strncpy(MsgElem, TokenPos+1, TokenEndPos-(TokenPos+1));
+              MsgElem[TokenEndPos-(TokenPos+1)] = '\0';
+              MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+              //Serial.println(MsgElem);
+              Month = atoi(MsgElem); //sscanf(MsgElem, "%d", &Month);
+
+              strncpy(MsgElem, TokenEndPos+1, sizeof(MsgElem));
+              MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+              //Serial.println(MsgElem);
+              Day = atoi(MsgElem); //sscanf(MsgElem, "%d", &Day);
+            }
+          }
+
+        } else if (strcmp(MsgType, "CHRONO") == 0 ) {
+          //Split elements from Val
+          TokenPos = strchr(MsgVal, '-');
+          if (TokenPos != NULL) {
+            strncpy(MsgElem, MsgVal, TokenPos-MsgVal);
+            MsgElem[TokenPos-MsgVal] = '\0';
+            MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+            //Serial.println(MsgElem);
+            ChronoHour = atoi(MsgElem); //sscanf(MsgElem, "%d", &ChronoHour);
+
+            TokenEndPos = strrchr(MsgVal, '-');
+            if (TokenEndPos != NULL) {
+              strncpy(MsgElem, TokenPos+1, TokenEndPos-(TokenPos+1));
+              MsgElem[TokenEndPos-(TokenPos+1)] = '\0';
+              MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+              //Serial.println(MsgElem);
+              ChronoMinute = atoi(MsgElem); //sscanf(MsgElem, "%d", &ChronoMinute);
+
+              strncpy(MsgElem, TokenEndPos+1, sizeof(MsgElem));
+              MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+              TokenPos = strrchr(MsgElem, '/');
+              if (TokenPos != NULL) {
+                strncpy(MsgSubElem, MsgElem, TokenPos-MsgElem);
+                MsgSubElem[TokenPos-MsgElem] = '\0';
+                MsgSubElem[sizeof(MsgSubElem)-1] = '\0'; //Force a NULL char at the end for safety
+                //Serial.println(MsgSubElem);
+                ChronoSecond = atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &ChronoSecond);
+
+                strncpy(MsgSubElem, TokenPos+1, sizeof(MsgSubElem));
+                MsgSubElem[sizeof(MsgSubElem)-1] = '\0'; //Force a NULL char at the end for safety
+                //Serial.println(MsgSubElem);
+                ChronoThSecondOffset = atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &ChronoThSecondOffset);
+              }
+            }
+          }
+
+        } else if (strcmp(MsgType, "COUNTDOWN") == 0 ) {
+          //Split elements from Val
+          TokenPos = strchr(MsgVal, '-');
+          if (TokenPos != NULL) {
+            strncpy(MsgElem, MsgVal, TokenPos-MsgVal);
+            MsgElem[TokenPos-MsgVal] = '\0';
+            MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+            //Serial.println(MsgElem);
+            CountDownHour = atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownHour);
+
+            TokenEndPos = strrchr(MsgVal, '-');
+            if (TokenEndPos != NULL) {
+              strncpy(MsgElem, TokenPos+1, TokenEndPos-(TokenPos+1));
+              MsgElem[TokenEndPos-(TokenPos+1)] = '\0';
+              MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+              //Serial.println(MsgElem);
+              CountDownMinute = atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownMinute);
+
+              strncpy(MsgElem, TokenEndPos+1, sizeof(MsgElem));
+              MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+              //Serial.println(MsgElem);
+              CountDownSecond = atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownSecond);
+            }
+          }
+
+        } else if (strcmp(MsgType, "ACTION") == 0 ) {
+          TokenPos = strchr(MsgVal, '-');
+          if (TokenPos != NULL) {
+            strncpy(MsgElem, MsgVal, TokenPos-MsgVal);
+            MsgElem[TokenPos-MsgVal] = '\0';
+            MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
+            strncpy(MsgSubElem, TokenPos+1, sizeof(MsgSubElem));
+            MsgSubElem[sizeof(MsgSubElem)-1] = '\0'; //Force a NULL char at the end for safety
+
+            if (strcmp(MsgElem, "CHRONO") == 0 ) {
+              if (strcmp(MsgSubElem, "START") == 0 )
+                IsChronoActive = true;
+              else if (strcmp(MsgSubElem, "STOP") == 0 )
+                IsChronoActive = false;
+
+            } else if (strcmp(MsgElem, "COUNTDOWN") == 0 ) {
+              if (strcmp(MsgSubElem, "START") == 0 )
+                IsCountDownActive = true;
+              else if (strcmp(MsgSubElem, "STOP") == 0 )
+                IsCountDownActive = false;
+              else if (strcmp(MsgSubElem, "RESET") == 0 )  {
+                IsCountDownActive = false;
+                CountDownHour   = 0;
+                CountDownMinute = 0;
+                CountDownSecond = 0;
+              }
+
+            } else if (strcmp(MsgElem, "DIM") == 0 ) {
+              LedIntensity = atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &LedIntensity);
+              LedIntensity = max(min(LedIntensity, 0xf), 0x0);
+              lc.setIntensity(0,LedIntensity);
+              EEPROM.update(EEPROM_LEDINTENSITY, LedIntensity);
+            } 
+          }
+        } //else {
+          //Serial.println(RecvBuff);
+        //}
+      }
 
     }
   }
@@ -456,11 +588,11 @@ bool UpdateDisplay(void *) {
   }
   else if (digitalRead(KnobPin8) == LOW) {
     IsChronoVisible    = false;
-    DisplayTestPatern(NULL);
+    DisplayTestPatern(1);
   }
   else {
     IsChronoVisible    = false;
-    DisplayTestPatern(NULL);
+    DisplayTestPatern(0);
   }
 
   if (LedIntensity == -1)
