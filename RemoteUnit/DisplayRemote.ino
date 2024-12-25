@@ -40,50 +40,62 @@
 
 // Display the current Date in the specified format
 void DisplayCurrentDate(int DispFormat) {
-  String ConvBuff;
-  String DisplayVal;
+  char ConvBuff[8];
+  char DisplayVal[8];
 
   lc.setIntensity(0,LedIntensity);
 
   // Convert each Int to individual Char with leading zeros
-  DisplayVal = String(Year);
+  itoa(Year, DisplayVal, 10);
 
-  Month>9 ? ConvBuff=String(Month) : ConvBuff="0"+String(Month) ;
-  DisplayVal = DisplayVal + ConvBuff;
+  itoa(Month, ConvBuff, 10);
+  if(Month>9) {
+    DisplayVal[4] = ConvBuff[0];
+    DisplayVal[5] = ConvBuff[1];
+  } else {
+    DisplayVal[4] = '0';
+    DisplayVal[5] = ConvBuff[0];
+  } 
 
-  Day>9 ? ConvBuff=String(Day) : ConvBuff="0"+String(Day) ;
-  DisplayVal = DisplayVal + ConvBuff;
+  itoa(Day, ConvBuff, 10);
+  if(Day>9) {
+    DisplayVal[6] = ConvBuff[0];
+    DisplayVal[7] = ConvBuff[1];
+  } else {
+    DisplayVal[6] = '0';
+    DisplayVal[7] = ConvBuff[0];
+  }
   
   // Display the values in their respective position
   if (DispFormat == 0) {
     //YYYYMMDD
-    lc.setDigit(0, 7, DisplayVal.charAt(0)-'0', false);
-    lc.setDigit(0, 6, DisplayVal.charAt(1)-'0', false);
-    lc.setDigit(0, 5,DisplayVal.charAt(2)-'0', false);
-    lc.setRow(0, 4, SpecChar[(DisplayVal.charAt(3)-'0')+10]);
-    lc.setDigit(0, 3, DisplayVal.charAt(4)-'0', false);
-    lc.setRow(0, 2, SpecChar[(DisplayVal.charAt(5)-'0')+10]);
-    lc.setDigit(0, 1, DisplayVal.charAt(6)-'0', false);
+    lc.setDigit(0, 7, DisplayVal[0]-'0', false);
+    lc.setDigit(0, 6, DisplayVal[1]-'0', false);
+    lc.setDigit(0, 5,DisplayVal[2]-'0', false);
+    lc.setRow(0, 4, SpecChar[(DisplayVal[3]-'0')+10]);
+    lc.setDigit(0, 3, DisplayVal[4]-'0', false);
+    lc.setRow(0, 2, SpecChar[(DisplayVal[5]-'0')+10]);
+    lc.setDigit(0, 1, DisplayVal[6]-'0', false);
 
     if (LockIndicatorDot)
-      lc.setRow(0, 0, SpecChar[(DisplayVal.charAt(7)-'0')+10]); // same value but with a dot
+      lc.setRow(0, 0, SpecChar[(DisplayVal[7]-'0')+10]); // same value but with a dot
     else
-      lc.setDigit(0, 0, DisplayVal.charAt(7)-'0', false);
+      lc.setDigit(0, 0, DisplayVal[7]-'0', false);
 
   } else if (DispFormat == 1 ) {
     //YY-MM-DD
-    lc.setDigit(0, 7, DisplayVal.charAt(2)-'0', false);
-    lc.setDigit(0, 6, DisplayVal.charAt(3)-'0', false);
+    lc.setDigit(0, 7, DisplayVal[2]-'0', false);
+    lc.setDigit(0, 6, DisplayVal[3]-'0', false);
     lc.setRow(0, 5, SpecChar[BAR]);
-    lc.setDigit(0, 4, DisplayVal.charAt(4)-'0', false);
-    lc.setDigit(0, 3, DisplayVal.charAt(5)-'0', false);
+    lc.setDigit(0, 4, DisplayVal[4]-'0', false);
+    lc.setDigit(0, 3, DisplayVal[5]-'0', false);
     lc.setRow(0, 2, SpecChar[BAR]);
-    lc.setDigit(0, 1, DisplayVal.charAt(6)-'0', false);
+    lc.setDigit(0, 1, DisplayVal[6]-'0', false);
 
     if (LockIndicatorDot)
-      lc.setRow(0, 0, SpecChar[(DisplayVal.charAt(7)-'0')+10]); // same value but with a dot
+      lc.setRow(0, 0, SpecChar[(DisplayVal[7]-'0')+10]); // same value but with a dot
     else
-      lc.setDigit(0, 0, DisplayVal.charAt(7)-'0', false);
+      lc.setDigit(0, 0, DisplayVal[7]-'0', false);
   }
 }
 
@@ -93,36 +105,53 @@ void DisplayCurrentDate(int DispFormat) {
 
 // Display the current Time
 void DisplayCurrentTime(void *) {
-  String ConvBuff;
-  String DisplayVal;
+  char ConvBuff[8];
+  char DisplayVal[8];
 
   lc.setIntensity(0,LedIntensity);
 
   // Convert each Int to individual Char with leading zeros
-  Hour>9 ? ConvBuff=String(Hour) : ConvBuff="0"+String(Hour) ;
-  DisplayVal = ConvBuff;
+  itoa(Hour, ConvBuff, 10);
+  if(Hour>9) {
+    DisplayVal[0] = ConvBuff[0];
+    DisplayVal[1] = ConvBuff[1];
+  } else {
+    DisplayVal[0] = '0';
+    DisplayVal[1] = ConvBuff[0];
+  }
 
-  Minute>9 ? ConvBuff=String(Minute) : ConvBuff="0"+String(Minute) ;
-  DisplayVal = DisplayVal + ConvBuff;
+  itoa(Minute, ConvBuff, 10);
+  if(Minute>9) {
+    DisplayVal[2] = ConvBuff[0];
+    DisplayVal[3] = ConvBuff[1];
+  } else {
+    DisplayVal[2] = '0';
+    DisplayVal[3] = ConvBuff[0];
+  }
 
-  Second>9 ? ConvBuff=String(Second) : ConvBuff="0"+String(Second) ;
-  DisplayVal = DisplayVal + ConvBuff;
+  itoa(Second, ConvBuff, 10);
+  if(Second>9) {
+    DisplayVal[4] = ConvBuff[0];
+    DisplayVal[5] = ConvBuff[1];
+  } else {
+    DisplayVal[4] = '0';
+    DisplayVal[5] = ConvBuff[0];
+  }
   
   // Display the values in their respective position
     //HH_MI SS
-    lc.setDigit(0, 7, DisplayVal.charAt(0)-'0', false);
-    lc.setDigit(0, 6, DisplayVal.charAt(1)-'0', false);
+    lc.setDigit(0, 7, DisplayVal[0]-'0', false);
+    lc.setDigit(0, 6, DisplayVal[1]-'0', false);
     lc.setRow(0, 5, SpecChar[CH_H]);
-    lc.setDigit(0, 4, DisplayVal.charAt(2)-'0', false);
-    lc.setDigit(0, 3, DisplayVal.charAt(3)-'0', false);
+    lc.setDigit(0, 4, DisplayVal[2]-'0', false);
+    lc.setDigit(0, 3, DisplayVal[3]-'0', false);
     lc.setRow(0, 2, SpecChar[BLANK]);
-    lc.setDigit(0, 1, DisplayVal.charAt(4)-'0', false);
+    lc.setDigit(0, 1, DisplayVal[4]-'0', false);
 
     if (LockIndicatorDot)
-      lc.setRow(0, 0, SpecChar[(DisplayVal.charAt(5)-'0')+10]); // same value but with a dot
+      lc.setRow(0, 0, SpecChar[(DisplayVal[5]-'0')+10]); // same value but with a dot
     else
-      lc.setDigit(0, 0, DisplayVal.charAt(5)-'0', false);
-
+      lc.setDigit(0, 0, DisplayVal[5]-'0', false);
 }
 
 //     #####     #####     #####     #####     #####
@@ -131,37 +160,54 @@ void DisplayCurrentTime(void *) {
 
 // Display the current AlternateTime (TimeZone)
 void DisplayTZAltTime(void *) {
-  String ConvBuff;
-  String DisplayVal;
+  char ConvBuff[8];
+  char DisplayVal[8];
 
   lc.setIntensity(0,LedIntensity);
 
   // Convert each Int to individual Char with leading zeros
-  HourTZAlt>9 ? ConvBuff=String(HourTZAlt) : ConvBuff="0"+String(HourTZAlt) ;
-  DisplayVal = ConvBuff;
+  itoa(HourTZAlt, ConvBuff, 10);
+  if(HourTZAlt>9) {
+    DisplayVal[0] = ConvBuff[0];
+    DisplayVal[1] = ConvBuff[1];
+  } else {
+    DisplayVal[0] = '0';
+    DisplayVal[1] = ConvBuff[0];
+  }
 
-  MinuteTZAlt>9 ? ConvBuff=String(MinuteTZAlt) : ConvBuff="0"+String(MinuteTZAlt) ;
-  DisplayVal = DisplayVal + ConvBuff;
+  itoa(MinuteTZAlt, ConvBuff, 10);
+  if(MinuteTZAlt>9) {
+    DisplayVal[2] = ConvBuff[0];
+    DisplayVal[3] = ConvBuff[1];
+  } else {
+    DisplayVal[2] = '0';
+    DisplayVal[3] = ConvBuff[0];
+  } 
 
-  Second>9 ? ConvBuff=String(Second) : ConvBuff="0"+String(Second) ;
-  DisplayVal = DisplayVal + ConvBuff;
+  itoa(Second, ConvBuff, 10);
+  if(Second>9) {
+    DisplayVal[4] = ConvBuff[0];
+    DisplayVal[5] = ConvBuff[1];
+  } else {
+    DisplayVal[4] = '0';
+    DisplayVal[5] = ConvBuff[0];
+  }
   
   // Display the values in their respective position
   //HH_MI SS
-  lc.setDigit(0, 7, DisplayVal.charAt(0)-'0', false);
-  lc.setDigit(0, 6, DisplayVal.charAt(1)-'0', false);
+  lc.setDigit(0, 7, DisplayVal[0]-'0', false);
+  lc.setDigit(0, 6, DisplayVal[1]-'0', false);
   lc.setRow(0, 5, SpecChar[CH_H]);
-  lc.setDigit(0, 4, DisplayVal.charAt(2)-'0', false);
-  //lc.setDigit(0, 3, DisplayVal.charAt(3)-'0', false);
-  lc.setRow(0, 3, SpecChar[(DisplayVal.charAt(3)-'0')+10]);
+  lc.setDigit(0, 4, DisplayVal[2]-'0', false);
+  //lc.setDigit(0, 3, DisplayVal[3]-'0', false);
+  lc.setRow(0, 3, SpecChar[(DisplayVal[3]-'0')+10]);
   lc.setRow(0, 2, SpecChar[BLANK]);
-  lc.setDigit(0, 1, DisplayVal.charAt(4)-'0', false);
+  lc.setDigit(0, 1, DisplayVal[4]-'0', false);
 
   if (LockIndicatorDot)
-    lc.setRow(0, 0, SpecChar[(DisplayVal.charAt(5)-'0')+10]); // same value but with a dot
+    lc.setRow(0, 0, SpecChar[(DisplayVal[5]-'0')+10]); // same value but with a dot
   else
-    lc.setDigit(0, 0, DisplayVal.charAt(5)-'0', false);
-
+    lc.setDigit(0, 0, DisplayVal[5]-'0', false);
 }
 
 //     #####     #####     #####     #####     #####
@@ -170,35 +216,59 @@ void DisplayTZAltTime(void *) {
 
 // Display the current Chrono
 void DisplayCurrentChrono(void *) {
-  String ConvBuff;
-  String DisplayVal;
+  char ConvBuff[8];
+  char DisplayVal[8];
 
   lc.setIntensity(0,LedIntensity);
 
   // Convert each Int to individual Char with leading zeros
-  ChronoHour>9 ? ChronoHour>99 ? ConvBuff=String(ChronoHour) : ConvBuff="0"+String(ChronoHour) : ConvBuff="00"+String(ChronoHour) ;
-  DisplayVal = ConvBuff;
+  itoa(ChronoHour, ConvBuff, 10);
+  if(ChronoHour>99) {
+    DisplayVal[0] = ConvBuff[0];
+    DisplayVal[1] = ConvBuff[1];
+    DisplayVal[2] = ConvBuff[2];
+  } else if(ChronoHour>9) {
+    DisplayVal[0] = '0';
+    DisplayVal[1] = ConvBuff[0];
+    DisplayVal[2] = ConvBuff[1];
+  } else {
+    DisplayVal[0] = '0';
+    DisplayVal[1] = '0';
+    DisplayVal[2] = ConvBuff[0];
+  }
 
-  ChronoMinute>9 ? ConvBuff=String(ChronoMinute) : ConvBuff="0"+String(ChronoMinute) ;
-  DisplayVal = DisplayVal + ConvBuff;
+  itoa(ChronoMinute, ConvBuff, 10);
+  if(ChronoMinute>9) {
+    DisplayVal[3] = ConvBuff[0];
+    DisplayVal[4] = ConvBuff[1];
+  } else {
+    DisplayVal[3] = '0';
+    DisplayVal[4] = ConvBuff[0];
+  }
 
-  ChronoSecond>9 ? ConvBuff=String(ChronoSecond) : ConvBuff="0"+String(ChronoSecond) ;
-  DisplayVal = DisplayVal + ConvBuff;
+  itoa(ChronoSecond, ConvBuff, 10);
+  if(ChronoSecond>9) {
+    DisplayVal[5] = ConvBuff[0];
+    DisplayVal[6] = ConvBuff[1];
+  } else {
+    DisplayVal[5] = '0';
+    DisplayVal[6] = ConvBuff[0];
+  }
   
   // Display the values in their respective position
   //HHHMI SS
-  lc.setDigit(0, 7, DisplayVal.charAt(0)-'0', false);
-  lc.setDigit(0, 6, DisplayVal.charAt(1)-'0', false);
-  lc.setRow(0, 5, SpecChar[(DisplayVal.charAt(2)-'0')+10]);
-  lc.setDigit(0, 4,DisplayVal.charAt(3)-'0', false);
-  lc.setDigit(0, 3, DisplayVal.charAt(4)-'0', false);
+  lc.setDigit(0, 7, DisplayVal[0]-'0', false);
+  lc.setDigit(0, 6, DisplayVal[1]-'0', false);
+  lc.setRow(0, 5, SpecChar[(DisplayVal[2]-'0')+10]);
+  lc.setDigit(0, 4,DisplayVal[3]-'0', false);
+  lc.setDigit(0, 3, DisplayVal[4]-'0', false);
   lc.setRow(0, 2, SpecChar[BLANK]);
-  lc.setDigit(0, 1, DisplayVal.charAt(5)-'0', false);
+  lc.setDigit(0, 1, DisplayVal[5]-'0', false);
 
   if (LockIndicatorDot)
-    lc.setRow(0, 0, SpecChar[(DisplayVal.charAt(6)-'0')+10]); // same value but with a dot
+    lc.setRow(0, 0, SpecChar[(DisplayVal[6]-'0')+10]); // same value but with a dot
   else
-    lc.setDigit(0, 0, DisplayVal.charAt(6)-'0', false);
+    lc.setDigit(0, 0, DisplayVal[6]-'0', false);
 
 }
 
@@ -208,36 +278,91 @@ void DisplayCurrentChrono(void *) {
 
 // Display the current CountDown
 void DisplayCurrentCountDown(void *) {
-  String ConvBuff;
-  String DisplayVal;
+  char ConvBuff[8];
+  char DisplayVal[8];
 
   lc.setIntensity(0,LedIntensity);
 
-  // Convert each Int to individual Char with leading zeros
-  CountDownHour>9 ? CountDownHour>99 ? ConvBuff=String(CountDownHour) : ConvBuff="0"+String(CountDownHour) : ConvBuff="00"+String(CountDownHour) ;
-  DisplayVal = ConvBuff;
+  // If the CountDown as reached Zero
+  if (CountDownBlinking > -1) {
+    if(CountDownBlinking % 10 == 0) {
+      lc.setRow(0,7,SpecChar[10]);
+      lc.setRow(0,6,SpecChar[10]);
+      lc.setRow(0,5,SpecChar[10]);
+      lc.setRow(0,4,SpecChar[10]);
+      lc.setRow(0,3,SpecChar[10]);
+      lc.setRow(0,2,SpecChar[10]);
+      lc.setRow(0,1,SpecChar[10]);
+      lc.setRow(0,0,SpecChar[10]);
+    } else if(CountDownBlinking % 5 == 0) {
+      lc.setChar(0,7,'_',false);
+      lc.setChar(0,6,'_',false);
+      lc.setChar(0,5,'_',false);
+      lc.setChar(0,4,'_',false);
+      lc.setChar(0,3,'_',false);
+      lc.setChar(0,2,'_',false);
+      lc.setChar(0,1,'_',false);
+      lc.setChar(0,0,'_',false);
+    }
+    CountDownBlinking++;
+    if(CountDownBlinking > 100)
+      CountDownBlinking = -1;
+  } else {
+    // Convert each Int to individual Char with leading zeros
+    itoa(CountDownHour, ConvBuff, 10);
+    if(CountDownHour>99) {
+      DisplayVal[0] = ConvBuff[0];
+      DisplayVal[1] = ConvBuff[1];
+      DisplayVal[2] = ConvBuff[2];
+    } else if(CountDownHour>9) {
+      DisplayVal[0] = '0';
+      DisplayVal[1] = ConvBuff[0];
+      DisplayVal[2] = ConvBuff[1];
+    } else {
+      DisplayVal[0] = '0';
+      DisplayVal[1] = '0';
+      DisplayVal[2] = ConvBuff[0];
+   }
 
-  CountDownMinute>9 ? ConvBuff=String(CountDownMinute) : ConvBuff="0"+String(CountDownMinute) ;
-  DisplayVal = DisplayVal + ConvBuff;
+    itoa(CountDownMinute, ConvBuff, 10);
+    if(CountDownMinute>9) {
+      DisplayVal[3] = ConvBuff[0];
+      DisplayVal[4] = ConvBuff[1];
+    } else {
+      DisplayVal[3] = '0';
+      DisplayVal[4] = ConvBuff[0];
+    }
 
-  CountDownSecond>9 ? CountDownSecond>99 ? ConvBuff=String(CountDownSecond) : ConvBuff="0"+String(CountDownSecond) : ConvBuff="00"+String(CountDownSecond) ;
-  DisplayVal = DisplayVal + ConvBuff;
+    itoa(CountDownSecond, ConvBuff, 10);
+    if(CountDownSecond>99) {
+      DisplayVal[5] = ConvBuff[0];
+      DisplayVal[6] = ConvBuff[1];
+      DisplayVal[7] = ConvBuff[2];
+    } else if(CountDownSecond>9) {
+      DisplayVal[5] = '0';
+      DisplayVal[6] = ConvBuff[0];
+      DisplayVal[7] = ConvBuff[1];
+    } else {
+      DisplayVal[5] = '0';
+      DisplayVal[6] = '0';
+      DisplayVal[7] = ConvBuff[0];
+    }
   
-  // Display the values in their respective position
-  //HHHMMSSS
-  lc.setDigit(0, 7, DisplayVal.charAt(0)-'0', false);
-  lc.setDigit(0, 6, DisplayVal.charAt(1)-'0', false);
-  lc.setRow(0, 5, SpecChar[(DisplayVal.charAt(2)-'0')+10]);
-  lc.setDigit(0, 4,DisplayVal.charAt(3)-'0', false);
-  lc.setRow(0, 3, SpecChar[(DisplayVal.charAt(4)-'0')+10]);
-  lc.setDigit(0, 2, DisplayVal.charAt(5)-'0', false);
-  lc.setDigit(0, 1, DisplayVal.charAt(6)-'0', false);
+    // Display the values in their respective position
+    //HHHMMSSS
+    lc.setDigit(0, 7, DisplayVal[0]-'0', false);
+    lc.setDigit(0, 6, DisplayVal[1]-'0', false);
+    lc.setRow(0, 5, SpecChar[(DisplayVal[2]-'0')+10]);
+    lc.setDigit(0, 4,DisplayVal[3]-'0', false);
+    lc.setRow(0, 3, SpecChar[(DisplayVal[4]-'0')+10]);
+    lc.setDigit(0, 2, DisplayVal[5]-'0', false);
+    lc.setDigit(0, 1, DisplayVal[6]-'0', false);
 
-  if (LockIndicatorDot)
-    lc.setRow(0, 0, SpecChar[(DisplayVal.charAt(7)-'0')+10]); // same value but with a dot
-  else
-    lc.setDigit(0, 0, DisplayVal.charAt(7)-'0', false);
-
+    if (LockIndicatorDot)
+      lc.setRow(0, 0, SpecChar[(DisplayVal[7]-'0')+10]); // same value but with a dot
+    else
+      lc.setDigit(0, 0, DisplayVal[7]-'0', false);
+  }
 }
 
 //     #####     #####     #####     #####     #####

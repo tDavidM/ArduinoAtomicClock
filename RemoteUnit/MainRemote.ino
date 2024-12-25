@@ -44,11 +44,16 @@ int CountDownHour      = 0;
 int CountDownMinute    = 0;
 int CountDownSecond    = 0; 
 bool IsCountDownDone   = false;
+int CountDownBlinking  = -1;
 
 int LedIntensity      = 0x8; // Segment display intensity
 const int EEPROM_LEDINTENSITY = 16;
 
 bool LockIndicatorDot = false; // Blinking dot as a lock indicator
+
+// Control Knob related variables
+int KnobValue   = 0;  // Most recent value for Knob position, once "debounced" it is used to set DisplayMode
+int DisplayMode = 0;  // The end result of the knob position is available here
 
 //Buffer used for serial data recv
 String RecvBuff;
@@ -116,7 +121,6 @@ void setup() {
   pinMode(KnobPin7, INPUT_PULLUP);    //
   pinMode(KnobPin8, INPUT_PULLUP);    //
 
-
   // Initialize serial communication
   Serial.begin(9600);
   Serial.setTimeout(20);
@@ -143,14 +147,12 @@ void setup() {
   lc.setRow(0,1,0b01011110); // G
   lc.setChar(0,0,' ',false);
 
-
-
   delay(1000);
 
   // Call the functions every x millisecond
   timer.every(10,  UpdateRemote);  // Keep everything up to date by listening on Serial
-  timer.every(50,  UpdateDisplay); // Depending on the Knob position, call the appropriate display routine
-  timer.every(100, UpdateChrono);  // If Chrono is displayed, keep the second update more accurate then when not displayed
+  timer.every(100, UpdateDisplay); // Depending on the Knob position, call the appropriate display routine (should be 50 if chrono ever display the tens)
+  timer.every(100, UpdateChrono);  // If Chrono is displayed, it keeps the second update more accurate then when not displayed
 
 }
 
@@ -285,8 +287,13 @@ void ClockTick(void *) {
         CountDownMinute = 59;
         if (CountDownHour > 0)
           CountDownHour--;
-        else
-          IsCountDownDone = true;
+        else {
+          IsCountDownDone   = true;
+          IsCountDownActive = false;
+          CountDownSecond = 0;
+          CountDownMinute = 0;
+          CountDownBlinking = 0;
+        }
       }
     }
   }
@@ -558,41 +565,44 @@ bool UpdateChrono(void *) {
 //     #####     #####     #####     #####     #####
 //     #####     #####     #####     #####     #####
 
-// Runs every 50ms, depending on the Knob position, call the appropriate display routine
+// Runs every 100ms, depending on the Knob position, call the appropriate display routine
 bool UpdateDisplay(void *) {
+  int NewKnobValue = 0;
 
   if (digitalRead(KnobPin1) == LOW)
-    DisplayBlinkingDot(NULL);
-
+    NewKnobValue = 0;
   else if (digitalRead(KnobPin2) == LOW)
-    DisplayCurrentTime(NULL);
-
+    NewKnobValue = 1;
   else if (digitalRead(KnobPin3) == LOW)
-    DisplayTZAltTime(NULL);
+    NewKnobValue = 2;
+  else if (digitalRead(KnobPin4) == LOW)
+    NewKnobValue = 3;
+  else if (digitalRead(KnobPin5) == LOW)
+    NewKnobValue = 4;
+  else if (digitalRead(KnobPin6) == LOW)
+    NewKnobValue = 5;
+  else if (digitalRead(KnobPin7) == LOW)
+    NewKnobValue = 6;
+  else if (digitalRead(KnobPin8) == LOW)
+    NewKnobValue = 7;
+  else
+    NewKnobValue = 8;
 
-  else if (digitalRead(KnobPin4) == LOW) {
-    IsChronoVisible = false;
-    DisplayCurrentDate(1);
-  }
-  else if (digitalRead(KnobPin5) == LOW) {
-    IsChronoVisible    = false;
-    DisplayCurrentDate(0);
-  }
-  else if (digitalRead(KnobPin6) == LOW) {
-    IsChronoVisible    = true;
-    DisplayCurrentChrono(NULL);
-  }
-  else if (digitalRead(KnobPin7) == LOW) {
-    IsChronoVisible    = false;
-    DisplayCurrentCountDown(NULL);
-  }
-  else if (digitalRead(KnobPin8) == LOW) {
-    IsChronoVisible    = false;
-    DisplayTestPatern(1);
-  }
-  else {
-    IsChronoVisible    = false;
-    DisplayTestPatern(0);
+  // New val compared with previous val to "debounce" the knob
+  if(NewKnobValue == KnobValue) 
+    DisplayMode = KnobValue;
+  KnobValue = NewKnobValue;
+
+  switch(DisplayMode) {
+    case 0:  DisplayBlinkingDot(NULL);  break;
+    case 1:  DisplayCurrentTime(NULL);  break;
+    case 2:  DisplayTZAltTime(NULL);    break;
+    case 3:  DisplayCurrentDate(1);          IsChronoVisible = false;  break;
+    case 4:  DisplayCurrentDate(0);          IsChronoVisible = false;  break;
+    case 5:  DisplayCurrentChrono(NULL);     IsChronoVisible = true;   break;
+    case 6:  DisplayCurrentCountDown(NULL);  IsChronoVisible = false;  break;
+    case 7:  DisplayTestPatern(1);           IsChronoVisible = false;  break;
+    case 8:  DisplayTestPatern(0);           IsChronoVisible = false;  break;
   }
 
   if (LedIntensity == -1)
