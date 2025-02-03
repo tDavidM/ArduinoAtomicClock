@@ -51,12 +51,14 @@ const int EEPROM_LEDINTENSITY = 16;
 
 bool LockIndicatorDot = false; // Blinking dot as a lock indicator
 
+//Buffer used for serial data recv
+const int BufferSize = 32;  
+char RecvBuff[BufferSize];
+bool BuffAvailable = false;
+
 // Control Knob related variables
 int KnobValue   = 0;  // Most recent value for Knob position, once "debounced" it is used to set DisplayMode
 int DisplayMode = 0;  // The end result of the knob position is available here
-
-//Buffer used for serial data recv
-String RecvBuff;
 
 // Inputs
 const int ClockTickPin = 2;  // Pin 2 receives the PPS (Pulse Per Second) from the Main Clock and triggers an Interrupt
@@ -123,7 +125,6 @@ void setup() {
 
   // Initialize serial communication
   Serial.begin(9600);
-  Serial.setTimeout(20);
 
   // The MAX72XX is in power-saving mode on startup, we have to do a wakeup call
   lc.shutdown(0, false);
@@ -138,9 +139,9 @@ void setup() {
     EEPROM.update(EEPROM_LEDINTENSITY, 8);
   }
 
-  lc.setChar(0,7,' ',false);
-  lc.setChar(0,6,'L',false);
-  lc.setRow(0,5,0b00011101); // o
+  lc.setChar(0,7,'L',false);
+  lc.setRow(0,6,0b00011101); // o
+   lc.setChar(0,5,'A',false); 
   lc.setChar(0,4,'d',false);
   lc.setRow(0,3,0b00010000); // i
   lc.setRow(0,2,0b00010101); // n
@@ -150,8 +151,9 @@ void setup() {
   delay(1000);
 
   // Call the functions every x millisecond
-  timer.every(10,  UpdateRemote);  // Keep everything up to date by listening on Serial
-  timer.every(100, UpdateDisplay); // Depending on the Knob position, call the appropriate display routine (should be 50 if chrono ever display the tens)
+  //timer.every(7,   ReadSerial);    // Keep everything up to date by listening on Serial
+  timer.every(75,  UpdateRemote);  // Process the Serial data
+  timer.every(125, UpdateDisplay); // Depending on the Knob position, call the appropriate display routine (should be 50 if chrono ever display the tens)
   timer.every(100, UpdateChrono);  // If Chrono is displayed, it keeps the second update more accurate then when not displayed
 
 }
@@ -163,6 +165,8 @@ void setup() {
 // Main loop, only used to call various timers at the proper time
 void loop() {
 
+  ReadSerial(NULL);
+
   timer.tick();
 
 }
@@ -173,9 +177,11 @@ void loop() {
 
 // Triggered by pin "ClockTickPin" when PPS received
 void InterruptTick(void *) {
+  noInterrupts ();
   ClockTick(NULL);
 
   LockIndicatorDot = true;
+  interrupts ();
 }
 
 //     #####     #####     #####     #####     #####
@@ -306,25 +312,63 @@ void ClockTick(void *) {
 //     #####     #####     #####     #####     #####
 //     #####     #####     #####     #####     #####
 
-// Runs every 100ms, keep everything up to date by listening on Serial
+bool ReadSerial(void *) {
+  char Recv;
+  static byte NbByte = 0;
+  byte MaxIter = 32;
+
+  while( !BuffAvailable && MaxIter != 0 && Serial.available() > 0 ) {
+    Recv = Serial.read();
+
+    if( Recv != '\n' ) {
+      RecvBuff[NbByte] = Recv;
+      NbByte++;
+
+      if( NbByte >= BufferSize )
+        NbByte = BufferSize - 1;
+    } else {
+      RecvBuff[NbByte] = '\0'; // terminate the string
+      NbByte = 0;
+      BuffAvailable = true;
+    }
+    MaxIter--;
+  }
+
+  return true; // to repeat the action - false to stop
+}
+
+//     #####     #####     #####     #####     #####
+//     #####     #####     #####     #####     #####
+
+int cStringToInt(const char *Source) {
+  int Value = 0;
+  byte i = 0;
+  
+  while( Source[i] >= '0' && Source[i] <= '9' ) {
+    Value = (Value * 10 ) + (Source[i] - '0');
+    i++;
+  }
+  return Value;
+}
+
+//     #####     #####     #####     #####     #####
+//     #####     #####     #####     #####     #####
+
+// Runs every 50ms, keep everything up to date by listening on Serial
 bool UpdateRemote(void *) {
-  char CharBuff[32], MsgType[16], MsgVal[24], MsgElem[12], MsgSubElem[8];
+  char CharBuff[BufferSize], MsgType[16], MsgVal[24], MsgElem[12], MsgSubElem[8];
   char * TokenPos;
   char * TokenEndPos;
 
   //If any bytes are available from Serial
-  if (Serial.available() > 0) {
-    RecvBuff = Serial.readString();
-    RecvBuff.trim();
-    //Serial.print(RecvBuff);
-    //Serial.print(" -> ");
+  if( BuffAvailable ) {
 
-    if (RecvBuff != "") {
-      //Copy the recv buffer to a char array for processing (had issues with String and memory management)
-      RecvBuff.toCharArray(CharBuff, sizeof(CharBuff));   
-      CharBuff[sizeof(CharBuff)-1] = '\0'; //Force a NULL char at the end for safety
-      //Serial.print(CharBuff);
-      //Serial.print(" -> ");
+    //Copy the recv buffer to a char array for processing
+    strncpy(CharBuff, RecvBuff, BufferSize);
+    CharBuff[BufferSize-1] = '\0'; //Force a NULL char at the end for safety
+    BuffAvailable = false;    
+
+      //Serial.println(CharBuff);
 
       //Different messages structures
       //MSGTYPE:ELEM-ELEM
@@ -359,7 +403,7 @@ bool UpdateRemote(void *) {
             MsgElem[TokenPos-MsgVal] = '\0';
             MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
             //Serial.println(MsgElem);
-            Hour = atoi(MsgElem); //sscanf(MsgElem, "%d", &Hour);
+            Hour = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &Hour);
 
             TokenEndPos = strrchr(MsgVal, '-');
             if (TokenEndPos != NULL) {
@@ -367,12 +411,12 @@ bool UpdateRemote(void *) {
               MsgElem[TokenEndPos-(TokenPos+1)] = '\0';
               MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
               //Serial.println(MsgElem);
-              Minute = atoi(MsgElem); //sscanf(MsgElem, "%d", &Minute);
+              Minute = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &Minute);
 
               strncpy(MsgElem, TokenEndPos+1, sizeof(MsgElem));
               MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
               //Serial.println(MsgElem);
-              Second = atoi(MsgElem); //sscanf(MsgElem, "%d", &Second);
+              Second = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &Second);
             }
           }
 
@@ -384,12 +428,12 @@ bool UpdateRemote(void *) {
             MsgElem[TokenPos-MsgVal] = '\0';
             MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
             //Serial.println(MsgElem);
-            HourTZAlt = atoi(MsgElem); //sscanf(MsgElem, "%d", &HourTZAlt);
+            HourTZAlt = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &HourTZAlt);
 
             strncpy(MsgElem, TokenPos+1, sizeof(MsgElem));
             MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
             //Serial.println(MsgElem);
-            MinuteTZAlt = atoi(MsgElem); //sscanf(MsgElem, "%d", &MinuteTZAlt);
+            MinuteTZAlt = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &MinuteTZAlt);
             
           }
 
@@ -401,7 +445,7 @@ bool UpdateRemote(void *) {
             MsgElem[TokenPos-MsgVal] = '\0';
             MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
             //Serial.println(MsgElem);
-            Year = atoi(MsgElem); //sscanf(MsgElem, "%d", &Year);
+            Year = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &Year);
 
             TokenEndPos = strrchr(MsgVal, '-');
             if (TokenEndPos != NULL) {
@@ -409,12 +453,12 @@ bool UpdateRemote(void *) {
               MsgElem[TokenEndPos-(TokenPos+1)] = '\0';
               MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
               //Serial.println(MsgElem);
-              Month = atoi(MsgElem); //sscanf(MsgElem, "%d", &Month);
+              Month = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &Month);
 
               strncpy(MsgElem, TokenEndPos+1, sizeof(MsgElem));
               MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
               //Serial.println(MsgElem);
-              Day = atoi(MsgElem); //sscanf(MsgElem, "%d", &Day);
+              Day = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &Day);
             }
           }
 
@@ -426,7 +470,7 @@ bool UpdateRemote(void *) {
             MsgElem[TokenPos-MsgVal] = '\0';
             MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
             //Serial.println(MsgElem);
-            ChronoHour = atoi(MsgElem); //sscanf(MsgElem, "%d", &ChronoHour);
+            ChronoHour = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &ChronoHour);
 
             TokenEndPos = strrchr(MsgVal, '-');
             if (TokenEndPos != NULL) {
@@ -434,7 +478,7 @@ bool UpdateRemote(void *) {
               MsgElem[TokenEndPos-(TokenPos+1)] = '\0';
               MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
               //Serial.println(MsgElem);
-              ChronoMinute = atoi(MsgElem); //sscanf(MsgElem, "%d", &ChronoMinute);
+              ChronoMinute = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &ChronoMinute);
 
               strncpy(MsgElem, TokenEndPos+1, sizeof(MsgElem));
               MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
@@ -444,12 +488,12 @@ bool UpdateRemote(void *) {
                 MsgSubElem[TokenPos-MsgElem] = '\0';
                 MsgSubElem[sizeof(MsgSubElem)-1] = '\0'; //Force a NULL char at the end for safety
                 //Serial.println(MsgSubElem);
-                ChronoSecond = atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &ChronoSecond);
+                ChronoSecond = cStringToInt(MsgSubElem); //atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &ChronoSecond);
 
                 strncpy(MsgSubElem, TokenPos+1, sizeof(MsgSubElem));
                 MsgSubElem[sizeof(MsgSubElem)-1] = '\0'; //Force a NULL char at the end for safety
                 //Serial.println(MsgSubElem);
-                ChronoThSecondOffset = atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &ChronoThSecondOffset);
+                ChronoThSecondOffset = cStringToInt(MsgSubElem); //atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &ChronoThSecondOffset);
               }
             }
           }
@@ -462,7 +506,7 @@ bool UpdateRemote(void *) {
             MsgElem[TokenPos-MsgVal] = '\0';
             MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
             //Serial.println(MsgElem);
-            CountDownHour = atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownHour);
+            CountDownHour = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownHour);
 
             TokenEndPos = strrchr(MsgVal, '-');
             if (TokenEndPos != NULL) {
@@ -470,13 +514,18 @@ bool UpdateRemote(void *) {
               MsgElem[TokenEndPos-(TokenPos+1)] = '\0';
               MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
               //Serial.println(MsgElem);
-              CountDownMinute = atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownMinute);
+              CountDownMinute = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownMinute);
 
               strncpy(MsgElem, TokenEndPos+1, sizeof(MsgElem));
               MsgElem[sizeof(MsgElem)-1] = '\0'; //Force a NULL char at the end for safety
               //Serial.println(MsgElem);
-              CountDownSecond = atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownSecond);
+              CountDownSecond = cStringToInt(MsgElem); //atoi(MsgElem); //sscanf(MsgElem, "%d", &CountDownSecond);
             }
+          }
+          if(IsCountDownActive && CountDownHour==0 && CountDownMinute==0 && CountDownSecond==0) {
+            IsCountDownDone   = true;
+            IsCountDownActive = false;
+            CountDownBlinking = 0;
           }
 
         } else if (strcmp(MsgType, "ACTION") == 0 ) {
@@ -507,7 +556,7 @@ bool UpdateRemote(void *) {
               }
 
             } else if (strcmp(MsgElem, "DIM") == 0 ) {
-              LedIntensity = atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &LedIntensity);
+              LedIntensity = cStringToInt(MsgSubElem); //atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &LedIntensity);
               LedIntensity = max(min(LedIntensity, 0xf), 0x0);
               lc.setIntensity(0,LedIntensity);
               EEPROM.update(EEPROM_LEDINTENSITY, LedIntensity);
@@ -519,7 +568,7 @@ bool UpdateRemote(void *) {
       }
 
     }
-  }
+//  }
 
   return true; // to repeat the action - false to stop
 }
@@ -593,16 +642,18 @@ bool UpdateDisplay(void *) {
     DisplayMode = KnobValue;
   KnobValue = NewKnobValue;
 
+  //Serial.println(DisplayMode);
+
   switch(DisplayMode) {
-    case 0:  DisplayBlinkingDot(NULL);  break;
-    case 1:  DisplayCurrentTime(NULL);  break;
-    case 2:  DisplayTZAltTime(NULL);    break;
-    case 3:  DisplayCurrentDate(1);          IsChronoVisible = false;  break;
-    case 4:  DisplayCurrentDate(0);          IsChronoVisible = false;  break;
-    case 5:  DisplayCurrentChrono(NULL);     IsChronoVisible = true;   break;
-    case 6:  DisplayCurrentCountDown(NULL);  IsChronoVisible = false;  break;
-    case 7:  DisplayTestPatern(1);           IsChronoVisible = false;  break;
-    case 8:  DisplayTestPatern(0);           IsChronoVisible = false;  break;
+    case 0:   DisplayBlinkingDot(NULL);  break;
+    case 1:   DisplayCurrentTime(NULL);  break;
+    case 2:   DisplayTZAltTime(NULL);    break;
+    case 3:   DisplayCurrentDate(1);          IsChronoVisible = false;  break;
+    case 4:   DisplayCurrentDate(0);          IsChronoVisible = false;  break;
+    case 5:   DisplayCurrentChrono(NULL);     IsChronoVisible = true;   break;
+    case 6:   DisplayCurrentCountDown(NULL);  IsChronoVisible = false;  break;
+    case 7:   DisplayTestPatern(1);           IsChronoVisible = false;  break;
+    default:  DisplayTestPatern(0);           IsChronoVisible = false;  break;
   }
 
   if (LedIntensity == -1)
