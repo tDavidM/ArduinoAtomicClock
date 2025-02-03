@@ -617,16 +617,19 @@ void DisplayDeltaNextLap(void *) {
   DeltaSecondGr = Lap<8 ? (ChronoLap[Lap+1].Second*10) + ChronoLap[Lap+1].TenthsSecond :
                           (ChronoSecond*10) + ChronoTenthsSecond; //DeltaSecond combines Seconds and TenthsSecond
 
-  //How about NO !
-  //MakeSwap = DeltaHourGr < ChronoLap[Lap].Hour ? true : (DeltaMinuteGr < ChronoLap[Lap].Minute ? true : (DeltaSecondGr < (ChronoLap[Lap].Second*10) + ChronoLap[Lap].TenthsSecond ? true : false))
-
   // That's better, if _Gr smaller than _Sm, a swap must be made
+  if (DeltaSecondGr < (ChronoLap[Lap].Second*10) + ChronoLap[Lap].TenthsSecond) //DeltaSecond combines Seconds and TenthsSecond
+    MakeSwap = true;
+
+  if (DeltaMinuteGr < ChronoLap[Lap].Minute)
+    MakeSwap = true;
+  else if(DeltaMinuteGr > ChronoLap[Lap].Minute)
+    MakeSwap = false;
+
   if (DeltaHourGr < ChronoLap[Lap].Hour)
     MakeSwap = true;
-  else if (DeltaMinuteGr < ChronoLap[Lap].Minute)
-    MakeSwap = true;
-  else if (DeltaSecondGr < (ChronoLap[Lap].Second*10) + ChronoLap[Lap].TenthsSecond) //DeltaSecond combines Seconds and TenthsSecond
-    MakeSwap = true;
+  else if (DeltaHourGr > ChronoLap[Lap].Hour)
+    MakeSwap = false;
 
   // Swap _Gr to _Sm and init _Gr again
   if (MakeSwap) {

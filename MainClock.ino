@@ -284,9 +284,9 @@ void setup() {
   lc.clearDisplay(0);
   lc.clearDisplay(1);
 
-  lc.setChar(0,7,' ',false);
-  lc.setChar(0,6,'L',false);
-  lc.setRow(0,5,0b00011101); // o
+  lc.setChar(0,7,'L',false);
+  lc.setRow(0,6,0b00011101); // o
+  lc.setChar(0,5,'A',false); 
   lc.setChar(0,4,'d',false);
   lc.setRow(0,3,0b00010000); // i
   lc.setRow(0,2,0b00010101); // n
@@ -492,8 +492,12 @@ void ClockTick(void *) {
         CountDownMinute = 59;
         if (CountDownHour > 0)
           CountDownHour--;
-        else
-          IsCountDownDone = true;
+        else{
+          IsCountDownDone   = true;
+          IsCountDownActive = false;
+          CountDownSecond = 0;
+          CountDownMinute = 0;
+        }
       }
     }
   }
