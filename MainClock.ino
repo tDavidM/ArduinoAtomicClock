@@ -75,85 +75,120 @@ int cmp = 0;
 // Addr x means the storage adress in EEPROM (0 to 1024)
 
 //Main clock variable, names are pretty much self-explanatory 
-int Year  = 2020;    // Addr 0-1       // Split in 2 integers
-int Month = 01;      // Addr 2
-int Day   = 01;      // Addr 3
+unsigned int Year  = 2020;    // Addr 0-1       // Split in 2 integers
+unsigned int Month = 01;      // Addr 2
+unsigned int Day   = 01;      // Addr 3
 
-int Hour    = 0;     // Addr 4-5       // wear leveling between Addr 4 and 5 to limit write under 100K over ~20Y, based on Hour%2
-int Minute  = 0;     // Addr 100-195   // wear leveling between Addr 100 and 196 to limit write near 100K over ~20Y, based on ((Day%4)*(Hour+1))+Hour
-int Second  = 0;     // Addr 200-919   // wear leveling between Addr 200 and 919 to limit write near 100K over ~20Y, limited to 10s precision, based on ((Hour%12)*(Minute+1))+Minute
-int TenthsSecond = 2;
+unsigned int Hour    = 0;     // Addr 4-5       // wear leveling between Addr 4 and 5 to limit write under 100K over ~20Y, based on Hour%2
+unsigned int Minute  = 0;     // Addr 100-195   // wear leveling between Addr 100 and 196 to limit write near 100K over ~20Y, based on ((Day%4)*(Hour+1))+Hour
+unsigned int Second  = 0;     // Addr 200-919   // wear leveling between Addr 200 and 919 to limit write near 100K over ~20Y, limited to 10s precision, based on ((Hour%12)*(Minute+1))+Minute
+unsigned int TenthsSecond = 2;
 
-int HourTZAlt   = 0;                    // Hour for the TimeZone/Alternate display
-int MinuteTZAlt = 0;                    // Minute for the TimeZone/Alternate display
-int TimeZoneOffsetHr  = 12;  // Addr 7   // Offset between Hour and HourTZAlt
-int TimeZoneOffsetMi  = 00;  // Addr 8   // Offset between Minute and MinuteTZAlt
+int HourTZAlt   = 0;                      // Hour for the TimeZone/Alternate display
+int MinuteTZAlt = 0;                      // Minute for the TimeZone/Alternate display
+int TimeZoneOffsetHr  = 12;   // Addr 7   // Offset between Hour and HourTZAlt
+int TimeZoneOffsetMi  = 00;   // Addr 8   // Offset between Minute and MinuteTZAlt
 
-bool DSTMode = false;       // Addr 9   // If the DaylightSavingTime is set
+bool DSTMode = false;         // Addr 9   // If the DaylightSavingTime is set
 
 // Chrono variables, names are pretty much self-explanatory 
-bool IsChronoActive = false; // Addr 10
-int ChronoHour   = 0;        // Addr 11
-int ChronoMinute = 0;        // Addr 920-929   // wear leveling between Addr 920 and 929 to limit write near 100K over ~2Y, limited to 10s precision, based on CrHour%10
-int ChronoSecond = 0;        // Addr 940-979   // wear leveling between Addr 940 and 979 to limit write near 100K over ~2Y, limited to 15s precision, based on ((CrHour%2)*20)+(CrMinute%20)
-int ChronoTenthsSecond   = 0;                 
-int ChronoThSecondOffset = 0;
+bool IsChronoActive = false;          // Addr 10
+unsigned int ChronoHour   = 0;        // Addr 11-12
+unsigned int ChronoMinute = 0;        // Addr 920-929   // wear leveling between Addr 920 and 929 to limit write near 100K over ~2Y, limited to 10s precision, based on CrHour%10
+unsigned int ChronoSecond = 0;        // Addr 940-979   // wear leveling between Addr 940 and 979 to limit write near 100K over ~2Y, limited to 15s precision, based on ((CrHour%2)*20)+(CrMinute%20)
+unsigned int ChronoTenthsSecond   = 0;                 
+unsigned int ChronoThSecondOffset = 0;
 
 // Structure for storing a lap
 struct ChronoLapStruct {
-  int Hour   = 0;
-  int Minute = 0;
-  int Second = 0;
-  int TenthsSecond = 0;
+  unsigned int Hour   = 0;
+  unsigned int Minute = 0;
+  unsigned int Second = 0;
+  unsigned int TenthsSecond = 0;
 } ;
 // Array to store 9 laps of Chrono
-ChronoLapStruct ChronoLap[9] ; /*= { // Addr 50-94
+ChronoLapStruct ChronoLap[9] ; /*= {     // Addr 50-94
   {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
   {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
   {0,0,0,0}, {0,0,0,0}, {0,0,0,0}
 };*/
 
 // CountDown variables, names are pretty much self-explanatory 
-bool IsCountDownActive = false; // Addr 12
-int CountDownHour      = 0;     // Addr 13
-int CountDownMinute    = 0;     // Addr 930-939         // wear leveling between Addr 930 and 939 to limit write near 100K over ~2Y, limited to 10s precision, based on CdHour%10
-int CountDownSecond    = 0;     // Addr 980-1019 [1020] // wear leveling between Addr 980 and 1020 to limit write near 100K over ~2Y, limited to 10s precision, based on ((CdHour%2)*20)+(CdMinute%20)
-bool IsCountDownDone   = false; //                           * portion above 100 for second is stored at 1020
+bool IsCountDownActive = false;          // Addr 13
+unsigned int CountDownHour      = 0;     // Addr 14-15
+unsigned int CountDownMinute    = 0;     // Addr 930-939         // wear leveling between Addr 930 and 939 to limit write near 100K over ~2Y, limited to 10s precision, based on CdHour%10
+unsigned int CountDownSecond    = 0;     // Addr 980-1019 [1020] // wear leveling between Addr 980 and 1020 to limit write near 100K over ~2Y, limited to 10s precision, based on ((CdHour%2)*20)+(CdMinute%20)
+bool IsCountDownDone   = false;          //                           * portion above 100 for second is stored at 1020
 
-int LedIntensity      = 0x8;    // Addr 14   // Segment display intensity
+// Misc Display variable
+unsigned int LedIntensity   = 0x8;       // Addr 16   // Segment display intensity
+bool InitPower     = true;                            // Flag to warn the user that the clock's power as been cycled on/off (the user can clear this flag manually)
+bool LockFault     = true;                            // If at anytime the lock is lost, this flag is set to warn the user (the user can clear this flag manually)
+bool LEDBlinking      = false;                        // Toggles every PPS to make the LED blink if lockfault detected
+bool LEDBlinkingState = false;                        // LED blink status, this is changed every 50ms
+
+enum DateDisplayModes { DM_YYYYMMDD, DM_YYMMDD, DM_YY_MM_DD, DM_MMDDYYYY, DM_DDMMYYYY, DM_YYYYDDMM, DM_SIZEOF }; // 0 = ISO 8601
+enum TimeDisplayModes { TM_HHMISS_X, TM_HH_MISSX, TM_HHMI_SS, TM_HH_MI_SS, TM_HHPMISSX, TM_HHPMI_SS, TM_SIZEOF }; // 0 = ISO 8601
+enum ChronoDisplayModes { CM_HHHMISSX, CM_HHHMI_SS, CM_SIZEOF };
+enum CountDownDisplayModes { CDM_HHHMISSS, CDM_HHHMI_SS, CDM_SIZEOF };
+const unsigned int LAP_NONE = 0;
+const unsigned int LAP_DELTA = 10;
+const unsigned int LAP_SIZEOF = 20;
 
 //Display format variables
-int DateDisplayMode      = 0;   // Addr 15   // Date format for the display
-int TimeDisplayMode      = 0;   // Addr 16   // Time format for the display
-int ChronoDisplayMode    = 0;   // Addr 17   // Time format for the Chrono
-int ChronoLapMode        = 0;   // Addr 18   // Which Lap is displayed and if the delta with previous lap is shown (0=none) (>10=with delta)
-int CountDownDisplayMode = 0;   // Addr 19   // Time format for the CountDown
+DateDisplayModes DateDisplayMode           = 0;   // Addr 17   // Date format for the display
+TimeDisplayModes TimeDisplayMode           = 0;   // Addr 18   // Time format for the display
+ChronoDisplayModes ChronoDisplayMode       = 0;   // Addr 19   // Time format for the Chrono
+CountDownDisplayModes CountDownDisplayMode = 0;   // Addr 21   // Time format for the CountDown
+unsigned int ChronoLapMode                 = 0;   // Addr 20   // Which Lap is displayed and if the delta with previous lap is shown (0=none) (>10=with delta)
 
 // When LockMode is >= to the listed values, the following fonctionalities are unavailable
-// 0 = None
-// 1 = Lock/PassCode Change
-// 2 = Date/Hour/Second Change
-// 3 = TimeZone/DST Set
-// 4 = Countdown/Chrono/Laps Change/Set
-// 5 = Display Format Set
-// 6 = Dim Set
-int LockMode = 0;             // Addr 20      // See above
-int Unlocked = 0;                             // If the correct PassCode had been typed under "UpdateSetLock()" (2==failed)
-int LockPassCode[16];         // Addr 22-38   // Stored PassCode to be compared with TestPassCode 
-int TestPassCode[16];                         // PassCode currently being typed
-int LockPassCodeLength = 0;   // Addr 39      // Number of "char" stored in LockPassCode
-int TestPassCodeLength = 0;                   // Number of "char" typed in TestPassCode
+enum LockModes {
+  LM_NONE,     // 0 = None
+  LM_LOCK,     // 1 = Lock/PassCode Change
+  LM_DATETIME, // 2 = Date/Hour/Second Change
+  LM_TIMEZONE, // 3 = TimeZone/DST Set
+  LM_CHRONO,   // 4 = Countdown/Chrono/Laps Change/Set
+  LM_DISPLAY,  // 5 = Display Format Set
+  LM_DIMSET,   // 6 = Dim Set
+  LM_SIZEOF
+};
+enum UnlockModes { UM_LOCKED, UM_UNLOCKED, UM_FAILED };
+const unsigned int MAXPWDLENGTH  = 16;
+const unsigned int MAXPWDATTEMPT = 5;
+
+LockModes   LockMode = LM_NONE;        // Addr 22      // See above
+UnlockModes Unlocked = UM_LOCKED;                      // If the correct PassCode had been typed under "UpdateSetLock()"
+unsigned int LockPassCode[MAXPWDLENGTH];         // Addr 23-38   // Stored PassCode to be compared with TestPassCode 
+unsigned int TestPassCode[MAXPWDLENGTH];                         // PassCode currently being typed
+unsigned int LockPassCodeLength = 0;   // Addr 40      // Number of "char" stored in LockPassCode
+unsigned int TestPassCodeLength = 0;                   // Number of "char" typed in TestPassCode
+unsigned int LockAttempt = 0;          // Addr 39      // Number of attempts made to unlock
+bool LockTemper = false;                               // if more than 5 attemps, this make the 
+
+enum DisplayModes { M_TEST, M_DIM, M_CHRONO, M_COUNTDOWN, M_TIME, M_DATE,
+                    M_SETDATE, M_SETTIME, M_SETCOUNTDOWN, M_LOCK };
 
 // Control Knob related variables
-int CurrKnobValue = 0;  // Most recent value from ReadKnob(), once "debounced" it is used to set DisplayMode
-int DisplayMode   = 9;  // The end result of the knob position is available here
+DisplayModes CurrKnobValue = M_TEST;  // Most recent value from ReadKnob(), once "debounced" it is used to set DisplayMode
+DisplayModes DisplayMode   = M_TEST;  // The end result of the knob position is available here
+
+const unsigned int LEDCOLNULL = -1;
+const unsigned int LEDCOL0 = 7;
+const unsigned int LEDCOL1 = 6;
+const unsigned int LEDCOL2 = 5;
+const unsigned int LEDCOL3 = 4;
+const unsigned int LEDCOL4 = 3;
+const unsigned int LEDCOL5 = 2;
+const unsigned int LEDCOL6 = 1;
+const unsigned int LEDCOL7 = 0;
 
 // Keypad related variables
-char KeyPressVal   = NULL;   // Value of the current key being pressed, set by ReadKeypad() (see variable char AvailableKeys)
-bool NewKeyPress   = false;  // Set by ReadKeypad(), resetted by the fonction consuming the keypress
-int  CursorPos     = 7;      // Position of the edit cursor
-bool ToggleCurVal  = false;  // Set by ToggleCursor() to control blinking of the char under the cursor
-byte ToggleCurChar = '.';    // Stores the char at CursorPos to be edited in Update Modes
+char KeyPressVal       = NULL;    // Value of the current key being pressed, set by ReadKeypad() (see variable char AvailableKeys)
+bool NewKeyPress       = false;   // Set by ReadKeypad(), resetted by the fonction consuming the keypress
+unsigned int CursorPos = LEDCOL0; // Position of the edit cursor (Col:0=ID:7 ... Col:7=ID:0)
+bool ToggleCurVal      = false;   // Set by ToggleCursor() to control blinking of the char under the cursor
+byte ToggleCurChar     = '.';     // Stores the char at CursorPos to be edited in Update Modes
 
 // Serial output out of sync buffer
 String MessageBuffer;
@@ -169,35 +204,36 @@ const int OutTickPin = A5;   // Drives the pin E on the rear Data jack (2J2)
 const int OutLockPin = A6;   // Drives the pin F on the rear Data jack (2J2)
 
 //All Addr constants for EEPROM
-const int EEPROM_YEAR                 = 0;   // Size 2
-const int EEPROM_MONTH                = 2;
-const int EEPROM_DAY                  = 3;
-const int EEPROM_HOUR                 = 4;   // Size 2
-const int EEPROM_MINUTE               = 100; // Size 96
-const int EEPROM_SECOND               = 200; // Size 720
-const int EEPROM_TIMEZONEOFFSETHR     = 7;
-const int EEPROM_TIMEZONEOFFSETMI     = 8;
-const int EEPROM_DTSMODE              = 9;
-const int EEPROM_CHRONOACTIVE         = 10;
-const int EEPROM_CHRONOHOUR           = 11;  // Size 2
-const int EEPROM_CHRONOMINUTE         = 920; // Size 10
-const int EEPROM_CHRONOSECOND         = 940; // Size 40
-const int EEPROM_CHRONOLAPLIST        = 50;  // Size 45
-const int EEPROM_COUNTDOWNACTIVE      = 13;
-const int EEPROM_COUNTDOWNHOUR        = 14;  // Size 2
-const int EEPROM_COUNTDOWNMINUTE      = 930; // Size 10
-const int EEPROM_COUNTDOWNSECOND      = 980; // Size 40
-const int EEPROM_COUNTDOWNSECONDOVER  = 1020;
-const int EEPROM_LEDINTENSITY         = 16;
-const int EEPROM_DATEDISPLAYMODE      = 17;
-const int EEPROM_TIMEDISPLAYMODE      = 18;
-const int EEPROM_CHRONODISPLAYMODE    = 19;
-const int EEPROM_CHRONOLAPMODE        = 20;
-const int EEPROM_COUNTDOWNDISPLAYMODE = 21;
-const int EEPROM_LOCKMODE             = 22;
-const int EEPROM_LOCKPASSCODE         = 23;  // Size 16
-const int EEPROM_LOCKPASSCODELENGTH   = 40;
-const int EEPROM_TESTVAL              = 1023; 
+const unsigned int EEPROM_YEAR                 = 0;   // Size 2
+const unsigned int EEPROM_MONTH                = 2;
+const unsigned int EEPROM_DAY                  = 3;
+const unsigned int EEPROM_HOUR                 = 4;   // Size 2
+const unsigned int EEPROM_MINUTE               = 100; // Size 96
+const unsigned int EEPROM_SECOND               = 200; // Size 720
+const unsigned int EEPROM_TIMEZONEOFFSETHR     = 7;
+const unsigned int EEPROM_TIMEZONEOFFSETMI     = 8;
+const unsigned int EEPROM_DTSMODE              = 9;
+const unsigned int EEPROM_CHRONOACTIVE         = 10;
+const unsigned int EEPROM_CHRONOHOUR           = 11;  // Size 2
+const unsigned int EEPROM_CHRONOMINUTE         = 920; // Size 10
+const unsigned int EEPROM_CHRONOSECOND         = 940; // Size 40
+const unsigned int EEPROM_CHRONOLAPLIST        = 50;  // Size 45
+const unsigned int EEPROM_COUNTDOWNACTIVE      = 13;
+const unsigned int EEPROM_COUNTDOWNHOUR        = 14;  // Size 2
+const unsigned int EEPROM_COUNTDOWNMINUTE      = 930; // Size 10
+const unsigned int EEPROM_COUNTDOWNSECOND      = 980; // Size 40
+const unsigned int EEPROM_COUNTDOWNSECONDOVER  = 1020;
+const unsigned int EEPROM_LEDINTENSITY         = 16;
+const unsigned int EEPROM_DATEDISPLAYMODE      = 17;
+const unsigned int EEPROM_TIMEDISPLAYMODE      = 18;
+const unsigned int EEPROM_CHRONODISPLAYMODE    = 19;
+const unsigned int EEPROM_CHRONOLAPMODE        = 20;
+const unsigned int EEPROM_COUNTDOWNDISPLAYMODE = 21;
+const unsigned int EEPROM_LOCKMODE             = 22;
+const unsigned int EEPROM_LOCKPASSCODE         = 23;  // Size 16
+const unsigned int EEPROM_LOCKATTEMPT          = 39;
+const unsigned int EEPROM_LOCKPASSCODELENGTH   = 40;
+const unsigned int EEPROM_TESTVAL              = 1023; 
 
 //Space Left: 6, 41-49, 95-99, 196-199, 1021, 1022 = 21 bytes
 
@@ -212,21 +248,43 @@ const int EEPROM_TESTVAL              = 1023;
 // 0b12345678
 
 //lookup table for bitmask values for numbers without dot (first row), numbers with dot (second row) and special chars (third row)
-                       // 0          1          2          3          4          5          6          7          8          9
-const int SpecChar[29] = {0b01111110,0b00110000,0b01101101,0b01111001,0b00110011,0b01011011,0b01011111,0b01110000,0b01111111,0b01111011,
-                          0b11111110,0b10110000,0b11101101,0b11111001,0b10110011,0b11011011,0b11011111,0b11110000,0b11111111,0b11111011,
-                          0b00000000,0b10000000,0b00001000,0b00000001,0b00110111,0b01110111,0b01100111,0b00111110,0b11111111};
-                       // *          .          _          -          H          A          P          V          #
-// Alias for indexes in the third row of SpecChar
-const int BLANK = 20;
-const int DOT   = 21;
-const int UNDER = 22;
-const int BAR   = 23;
-const int CH_H  = 24;
-const int CH_A  = 25;
-const int CH_P  = 26;
-const int CH_V  = 27;
-const int TEST  = 28;
+                                // 0          1          2          3          4          5          6          7          8          9
+const unsigned int SpecChar[45] = {0b01111110,0b00110000,0b01101101,0b01111001,0b00110011,0b01011011,0b01011111,0b01110000,0b01111111,0b01111011,
+                                   0b11111110,0b10110000,0b11101101,0b11111001,0b10110011,0b11011011,0b11011111,0b11110000,0b11111111,0b11111011,
+                                   0b00000000,0b10000000,0b00001000,0b00000001,0b00110111,0b01110111,0b01100111,0b00111110,0b01001110,0b00001001,
+                                //            .          _          -          H          A          P          V U        C          =
+                                   0b00011101,0b00010000,0b00010101,0b01011110,0b01010111,0b00001111,0b00111011,0b01000110,0b01110010,
+                                // o          i          n          G          k          t          y          M(1)       M(2)
+                                   0b10111110,0b10111101,0b10001110,0b10000101,0b11001110,0b11001111
+                                // U.         d.         L.         r.         C.         E.
+                                };
+// Alias for indexes in the third and forth rows of SpecChar
+const unsigned int CHR_DOTOFFET = 10;
+const unsigned int CHR_TEST  = 18;
+const unsigned int CHR_BLANK = 20;
+const unsigned int CHR_DOT   = 21;
+const unsigned int CHR_UNDER = 22;
+const unsigned int CHR_BAR   = 23;
+const unsigned int CHR_H     = 24;
+const unsigned int CHR_A     = 25;
+const unsigned int CHR_P     = 26;
+const unsigned int CHR_V     = 27;  const unsigned int CHR_U = 27;
+const unsigned int CHR_C     = 28;
+const unsigned int CHR_EQL   = 29;
+const unsigned int CHR_o     = 30;
+const unsigned int CHR_i     = 31;
+const unsigned int CHR_n     = 32;
+const unsigned int CHR_G     = 33;
+const unsigned int CHR_k     = 34;
+const unsigned int CHR_t     = 35;
+const unsigned int CHR_y     = 36;
+const unsigned int CHR_M     = 37;
+const unsigned int CHR_Ud    = 39;
+const unsigned int CHR_dd    = 40;
+const unsigned int CHR_Ld    = 41;
+const unsigned int CHR_rd    = 42;
+const unsigned int CHR_Cd    = 43;
+const unsigned int CHR_Ed    = 44;
 
 // Timer used in setup()
 auto timer = timer_create_default();
@@ -235,15 +293,33 @@ auto timer = timer_create_default();
 LedControl lc=LedControl(4,13,3,2);
 
 // Keypad size
-const int ROW_NUM = 4;    //4 rows
-const int COLUMN_NUM = 4; //4 columns
+const unsigned int ROW_NUM = 4;    //4 rows
+const unsigned int COLUMN_NUM = 4; //4 columns
+
+// Keypad Keys
+const char KEY_UP    = 'U';
+const char KEY_DOWN  = 'D';
+const char KEY_LEFT  = 'L';
+const char KEY_RIGHT = 'R';
+const char KEY_CLEAR = 'C';
+const char KEY_ENTER = 'E';
+const char KEY_0     = '0';
+const char KEY_1     = '1';
+const char KEY_2     = '2';
+const char KEY_3     = '3';
+const char KEY_4     = '4';
+const char KEY_5     = '5';
+const char KEY_6     = '6';
+const char KEY_7     = '7';
+const char KEY_8     = '8';
+const char KEY_9     = '9';
 
 // Matrix of keys on the keypad, used to set the global variable char KeyPressVal by ReadKeypad()
 char AvailableKeys[ROW_NUM][COLUMN_NUM] = {
-  {'U','D','L', 'R'},
-  {'1','2','3', 'C'},
-  {'4','5','6', 'E'},
-  {'7','8','9', '0'}
+  {KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT},
+  {KEY_1 , KEY_2,    KEY_3,    KEY_CLEAR},
+  {KEY_4 , KEY_5,    KEY_6,    KEY_ENTER},
+  {KEY_7 , KEY_8,    KEY_9,    KEY_0}
 };
 
 // Set the pinout for the keypad
@@ -255,14 +331,28 @@ Keypad keypad = Keypad( makeKeymap(AvailableKeys), pin_rows, pin_column, ROW_NUM
 //     #####     #####     #####     #####     #####
 //     #####     #####     #####     #####     #####
 
+// Misc settings
+const unsigned int EEPROM_MAGICVALUE = 22;
+const unsigned int ANALOGHALFVALUE = 512;
+const unsigned int UPPERLEDROW = 0;
+const unsigned int LOWERLEDROW = 1;
+const unsigned int LEDMAXINTENSITY = 0xf;
+const unsigned int LEDDEFAULTINTENSITY = 0x8;
+const unsigned int LEDOFFINTENSITY = -1;
+const unsigned int NBCHRONOLAP = 9;
+const unsigned int SIZECHRONOLAP = 5;
+
 // Init Timer, Load values from EEPROM, Set Pins/Interrupt/WatchDogTimer
 void setup() {
   wdt_reset();
   // Disable WatchDogTimer
   wdt_disable();
 
-  int MemTestValue = 0;
+  LockFault = true;
+  InitPower = true;
 
+  int MemTestValue = 0;
+  
   // Run InterruptTick() when ClockTickPin receives the 1 Pulse Per Second from the Frequency Standard
   attachInterrupt(digitalPinToInterrupt(ClockTickPin), InterruptTick, FALLING);
 
@@ -275,38 +365,38 @@ void setup() {
   pinMode(OutLockPin, OUTPUT);
 
   // The MAX72XX is in power-saving mode on startup, we have to do a wakeup call
-  lc.shutdown(0, false);
-  lc.shutdown(1, false);
+  lc.shutdown(UPPERLEDROW, false);
+  lc.shutdown(LOWERLEDROW, false);
   // Set the brightness to a medium values
-  lc.setIntensity(0, LedIntensity);
-  lc.setIntensity(1, LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
+  lc.setIntensity(LOWERLEDROW, LedIntensity);
   // And clear the display
-  lc.clearDisplay(0);
-  lc.clearDisplay(1);
+  lc.clearDisplay(UPPERLEDROW);
+  lc.clearDisplay(LOWERLEDROW);
 
-  lc.setChar(0,7,'L',false);
-  lc.setRow(0,6,0b00011101); // o
-  lc.setChar(0,5,'A',false); 
-  lc.setChar(0,4,'d',false);
-  lc.setRow(0,3,0b00010000); // i
-  lc.setRow(0,2,0b00010101); // n
-  lc.setRow(0,1,0b01011110); // G
-  lc.setChar(0,0,' ',false);
+  lc.setChar(UPPERLEDROW, LEDCOL0, 'L',false);
+  lc.setRow(UPPERLEDROW,  LEDCOL1, SpecChar[CHR_o]); // o
+  lc.setChar(UPPERLEDROW, LEDCOL2, 'A',false); 
+  lc.setChar(UPPERLEDROW, LEDCOL3, 'd',false);
+  lc.setRow(UPPERLEDROW,  LEDCOL4, SpecChar[CHR_i]); // i
+  lc.setRow(UPPERLEDROW,  LEDCOL5, SpecChar[CHR_n]); // n
+  lc.setRow(UPPERLEDROW,  LEDCOL6, SpecChar[CHR_G]); // G
+  lc.setChar(UPPERLEDROW, LEDCOL7, ' ',false);
 
   delay(1000);
 
   // Fetch the values saved to EEPROM if 
   MemTestValue = EEPROM.read(EEPROM_TESTVAL);
-  if (MemTestValue == 22)
+  if (MemTestValue == EEPROM_MAGICVALUE)
     GetEEPROMVal(NULL);
-   else {
+  else {
     // Set the array to zero
-    for(int i=0; i<9; i++) {
+    for(int i=0; i<NBCHRONOLAP; i++) {
       ChronoLap[i].Hour         = 0;
       ChronoLap[i].Minute       = 0;
       ChronoLap[i].Second       = 0;
       ChronoLap[i].TenthsSecond = 0;
-      for(int j=0; j<5; j++)
+      for(int j=0; j<SIZECHRONOLAP; j++)
         EEPROM.update(EEPROM_CHRONOLAPLIST+i+j, 0);
     }
     // Init all EEPROM Addrs
@@ -332,7 +422,7 @@ void setup() {
     EEPROM.update(EEPROM_COUNTDOWNMINUTE, 0); // CdHour%10
     EEPROM.update(EEPROM_COUNTDOWNSECOND, 0); // ((CdHour%2)*20)+(CdMinute%20)
     EEPROM.update(EEPROM_COUNTDOWNSECONDOVER, 0);
-    EEPROM.update(EEPROM_LEDINTENSITY, 8);
+    EEPROM.update(EEPROM_LEDINTENSITY, LEDDEFAULTINTENSITY);
     EEPROM.update(EEPROM_DATEDISPLAYMODE, 0);
     EEPROM.update(EEPROM_TIMEDISPLAYMODE, 0);
     EEPROM.update(EEPROM_CHRONODISPLAYMODE, 0);
@@ -340,7 +430,8 @@ void setup() {
     EEPROM.update(EEPROM_COUNTDOWNDISPLAYMODE, 0);
     EEPROM.update(EEPROM_LOCKMODE, 0);
     EEPROM.update(EEPROM_LOCKPASSCODELENGTH, 0);
-    EEPROM.update(EEPROM_TESTVAL, 22);
+    EEPROM.update(EEPROM_LOCKATTEMPT, 0);
+    EEPROM.update(EEPROM_TESTVAL, EEPROM_MAGICVALUE);
   }
 
   // Call the functions every x millisecond
@@ -353,7 +444,7 @@ void setup() {
   timer.every(100, ReadKnob);
   timer.every(500, ToggleCursor);     // Controls blinking of the cursor
   
-  // Watchdog Timer set to 8 sec, reset in ClockTick() every 1 sec.
+  // Watchdog Timer set to 4~8 sec, reset in ClockTick() every 1 sec.
   wdt_enable(WDTO_4S);
 }
 
@@ -386,8 +477,14 @@ void InterruptTick(void *) {
 void ClockTick(void *) {
 
   digitalWrite(OutTickPin, HIGH);
-  if (LedIntensity < 0)
+  if (LedIntensity < 0 )
     digitalWrite(LedTickPin, HIGH);
+
+  if (LockFault || LockTemper || InitPower) {
+    digitalWrite(LedTickPin, HIGH);
+    LEDBlinking      = true;
+    LEDBlinkingState = true;
+  }
 
   // Poke the WatchDogTimer
   wdt_reset();
@@ -518,14 +615,15 @@ bool UpdateTenthsSec(void *) {
   // "switch(TenthsSecond)" allows the computational load to be spread over the full second
   switch(TenthsSecond) {
     case 0: // Update Second and Minute for the TimeZone Alternative values (KEEP FIRST!)
-      if (LedIntensity >= 0)
+      if (LedIntensity >= 0 && !LEDBlinking)
         digitalWrite(LedTickPin, HIGH);
 
       if (Second == 0)
         UpdateTZAlt(NULL); 
     break;
     case 1: // Write Time to EEPROM, updated every 10 seconds
-      digitalWrite(LedTickPin, LOW);
+      if (!LockFault && !LockTemper && !InitPower)
+        digitalWrite(LedTickPin, LOW);
 
       if (Second%10 == 0) {
         EEPROM.write(EEPROM_SECOND+(((Hour%12)*(Minute+1))+Minute), Second); // Spread writes over 720 bytes overtime to limit wear on non-volatil memory
@@ -536,6 +634,11 @@ bool UpdateTenthsSec(void *) {
       }
     break;   
     case 2: // Output status over Serial, available on the pin B of the rear Data jack (2J2)
+      if (!LockTemper && !InitPower) {
+        LEDBlinking = false;
+        digitalWrite(LedTickPin, LOW);
+      }
+
       Serial.print("TIME:");
       Serial.print(Hour);
       Serial.print("-");
@@ -565,6 +668,11 @@ bool UpdateTenthsSec(void *) {
       }
     break;     
     case 5: // Output status over Serial, available on the pin B of the rear Data jack (2J2)
+      if (!InitPower) {
+        LEDBlinking = false;
+        digitalWrite(LedTickPin, LOW);
+      }
+
       if (IsChronoActive || (Second+4)%5 == 0) {
         Serial.print("CHRONO:");
         Serial.print(ChronoHour);
@@ -617,6 +725,9 @@ bool UpdateTenthsSec(void *) {
       }
     break;  
     case 9: // Output message buffer over Serial, available on the pin B of the rear Data jack (2J2)
+      LEDBlinking = false;
+      digitalWrite(LedTickPin, LOW);
+
       if (MessageBuffer != "") {
         Serial.println(MessageBuffer);
         MessageBuffer = "";
@@ -669,13 +780,17 @@ bool UpdateSecond(void *) {
   int ClockLockValue = analogRead(ClockLockPin); // do a sensor reading
 
   // Indicate if the clock is runing on internal oscillator or if the Frequency Standard as a lock
-  if (ClockLockValue < 512) {
+  if (ClockLockValue <= ANALOGHALFVALUE) {
+    if (!InitPower)
+      LockFault = true;
+
     digitalWrite(LedLockPin, LOW);
     digitalWrite(OutLockPin, LOW);
     ClockTick(NULL);
     Serial.println("SOURCE:INTERNAL");
   } else {
-    digitalWrite(LedLockPin, HIGH);
+    if (LedIntensity >= 0)
+      digitalWrite(LedLockPin, HIGH);
     digitalWrite(OutLockPin, HIGH);
     Serial.println("SOURCE:LOCK");
   }
@@ -689,57 +804,64 @@ bool UpdateSecond(void *) {
 // Runs every 50ms, depending on the Knob position, call the appropriate display routine
 bool UpdateDisplay(void *) {
   //Relock when leaving Mode 9 (Lock settings)
-  if (DisplayMode != 9)
-    Unlocked = 0;
+  if (DisplayMode != M_LOCK)
+    Unlocked = UM_LOCKED;
 
   switch(DisplayMode) {
-    case 1:
-      if (LockMode < 6)
+    case M_DIM:
+      if (LockMode < LM_DIMSET)
         UserChangeDim(NULL);
       else
         ShowLockScreen(NULL);
     break;
-    case 2:
+    case M_CHRONO:
       UserGetChrono(NULL);
     break;
-    case 3:
+    case M_COUNTDOWN:
       UserGetCountDown(NULL);
     break;
-    case 4:
+    case M_TIME:
       UserChangeTime(NULL);
     break;
-    case 5:
+    case M_DATE:
       UserChangeDate(NULL);
     break;
-    case 6:
-      if (LockMode < 2)
+    case M_SETDATE:
+      if (LockMode < LM_DATETIME)
         UpdateSetDate(NULL);
       else
         ShowLockScreen(NULL);
     break;
-    case 7:
-      if (LockMode < 2)
+    case M_SETTIME:
+      if (LockMode < LM_DATETIME)
         UpdateSetTime(NULL);
       else
         ShowLockScreen(NULL);
     break;
-    case 8:
-      if (LockMode < 4)
+    case M_SETCOUNTDOWN:
+      if (LockMode < LM_CHRONO)
         UpdateSetCountDown(NULL);
       else
         ShowLockScreen(NULL);
     break;
-    case 9:
+    case M_LOCK:
       UpdateSetLock(NULL);
     break;
+    case M_TEST:
     default:
       DisplayTestPatern(NULL);
   }
 
   if (LedIntensity == -1) {
-    lc.shutdown(0,true);
-    lc.shutdown(1,true);
+    lc.shutdown(UPPERLEDROW, true);
+    lc.shutdown(LOWERLEDROW, true);
   }
+
+  if (LEDBlinking) {
+    digitalWrite(LedTickPin, LEDBlinkingState);
+    LEDBlinkingState = !LEDBlinkingState;
+  }
+
   
   return true; // to repeat the action - false to stop
 }
@@ -767,7 +889,7 @@ bool ReadKeypad(void *) {
 // Runs every 500ms, control blinking of the cursor
 bool ToggleCursor(void *) {
   // Control blinking of the char under the cursor
-  ToggleCurVal=!ToggleCurVal;
+  ToggleCurVal = !ToggleCurVal;
 
   return true; // to repeat the action - false to stop
 }
@@ -777,33 +899,38 @@ bool ToggleCursor(void *) {
 
 // Runs every 100ms, convert analog Knob value to CurrKnobValue
 bool ReadKnob(void *) {
-  int ReadKnobValue = analogRead(KnobPin); // Raw value from sensor reading for knob position
-  int NewKnobValue  = 0;
+  DisplayModes NewKnobValue = 0;
+  int ReadKnobValue  = analogRead(KnobPin); // Raw value from sensor reading for knob position
+  int ClockLockValue = analogRead(ClockLockPin);
+
+  // raise a flag if the clock lost its lock at anytime
+  if (!InitPower && ClockLockValue <= ANALOGHALFVALUE) 
+    LockFault = true;
 
   //Serial.print("Knob value is: ");
   //Serial.println(ReadKnobValue);
 
   // Decode Knob position from voltage value ranges
   if(ReadKnobValue > 100 && ReadKnobValue < 200) { 
-    NewKnobValue = 1;
+    NewKnobValue = M_DIM;
   } else if (ReadKnobValue > 200 && ReadKnobValue < 300) {
-    NewKnobValue = 2;
+    NewKnobValue = M_CHRONO;
   } else if (ReadKnobValue > 300 && ReadKnobValue < 400) {
-    NewKnobValue = 3;
+    NewKnobValue = M_COUNTDOWN;
   } else if (ReadKnobValue > 400 && ReadKnobValue < 500) {
-    NewKnobValue = 4;
+    NewKnobValue = M_TIME;
   } else if (ReadKnobValue > 500 && ReadKnobValue < 600) {
-    NewKnobValue = 5;
+    NewKnobValue = M_DATE;
   } else if (ReadKnobValue > 600 && ReadKnobValue < 700) {
-    NewKnobValue = 6;
+    NewKnobValue = M_SETDATE;
   } else if (ReadKnobValue > 700 && ReadKnobValue < 800) {
-    NewKnobValue = 7;
+    NewKnobValue = M_SETTIME;
   } else if (ReadKnobValue > 800 && ReadKnobValue < 900) {
-    NewKnobValue = 8;
+    NewKnobValue = M_SETCOUNTDOWN;
   } else if (ReadKnobValue > 900 && ReadKnobValue < 1000) {
-    NewKnobValue = 9;
+    NewKnobValue = M_LOCK;
   } else {
-    NewKnobValue = 0; // Short or Open circuit condition, but usually open when in between 2 contacts
+    NewKnobValue = M_TEST; // Short or Open circuit condition, but usually open when in between 2 contacts
   }
 
   // New val compared with previous val to "debounce" the knob

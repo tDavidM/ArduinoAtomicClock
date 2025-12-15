@@ -28,31 +28,31 @@
 
 // Control user interaction with CountDown
 void UserGetCountDown(void *) {
-  lc.setIntensity(0,LedIntensity);
-  lc.setIntensity(1,LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
+  lc.setIntensity(LOWERLEDROW, LedIntensity);
 
-  DisplayCurrentTime(-1, false);
-  DisplayCurrentCountDown(-1, false);
+  DisplayCurrentTime(LEDCOLNULL, false);
+  DisplayCurrentCountDown(LEDCOLNULL, false);
 
   // React to a new Keypress
   if (NewKeyPress) {
     NewKeyPress = false; // Consume the Keypress
-    if (LockMode < 5) {
+    if (LockMode < LM_DISPLAY) {
       switch (KeyPressVal) {
-        case 'U':
-        case 'D': // Set the DisplayMode
-          if (CountDownDisplayMode == 0)
-            CountDownDisplayMode = 1;
+        case KEY_UP:
+        case KEY_DOWN: // Set the DisplayMode
+          if (CountDownDisplayMode == CDM_HHHMISSS)
+            CountDownDisplayMode = CDM_HHHMI_SS;
           else
-            CountDownDisplayMode = 0;
+            CountDownDisplayMode = CDM_HHHMISSS;
           EEPROM.update(EEPROM_COUNTDOWNDISPLAYMODE, CountDownDisplayMode);
           break;
-        case 'R':
-        case 'L': // No Action
+        case KEY_RIGHT:
+        case KEY_LEFT: // No Action
           NewKeyPress = false;
           break;
-        case 'C': // Stop and reset the CountDown to zero
-          if (LockMode < 4) {
+        case KEY_CLEAR: // Stop and reset the CountDown to zero
+          if (LockMode < LM_CHRONO) {
             CountDownHour   = 0;
             CountDownMinute = 0;
             CountDownSecond = 0;
@@ -67,8 +67,8 @@ void UserGetCountDown(void *) {
             EEPROM.update(EEPROM_COUNTDOWNACTIVE, false);
           }
           break;
-        case 'E': // Start/Stop the CountDown
-          if (LockMode < 4)
+        case KEY_ENTER: // Start/Stop the CountDown
+          if (LockMode < LM_CHRONO)
             IsCountDownActive = !IsCountDownActive;
             IsCountDownActive ? MessageBuffer = "ACTION:COUNTDOWN-START" : MessageBuffer = "ACTION:COUNTDOWN-STOP";
             EEPROM.update(EEPROM_COUNTDOWNACTIVE, IsCountDownActive);
@@ -87,59 +87,59 @@ void UserGetCountDown(void *) {
 
 // Control user interaction with Chrono
 void UserGetChrono(void *) {
-  lc.setIntensity(0,LedIntensity);
-  lc.setIntensity(1,LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
+  lc.setIntensity(LOWERLEDROW, LedIntensity);
 
-  int Lap = (ChronoLapMode%10)-1;
-  int LapOffset = Lap*5;
+  int Lap = (ChronoLapMode%LAP_DELTA)-1;
+  int LapOffset = Lap*SIZECHRONOLAP;
 
-  if (ChronoLapMode == 0)
-    DisplayCurrentTime(-1, false);
+  if (ChronoLapMode == LAP_NONE)
+    DisplayCurrentTime(LEDCOLNULL, false);
   else
     DisplayCurrentLap(NULL); 
 
-  if (ChronoLapMode < 10)
+  if (ChronoLapMode < LAP_DELTA)
     DisplayCurrentChrono(NULL);
   else
     DisplayDeltaNextLap(NULL);
 
   if (NewKeyPress) {
-    if (LockMode < 5) {
+    if (LockMode < LM_DISPLAY) {
       NewKeyPress = false;
       switch (KeyPressVal) {
-        case 'U':
-        case 'D': // Set the DisplayMode
-          if (ChronoLapMode == 0) {  
-            if (ChronoDisplayMode == 0)
-              ChronoDisplayMode = 1;
+        case KEY_UP:
+        case KEY_DOWN: // Set the DisplayMode
+          if (ChronoLapMode == LAP_NONE) {  
+            if (ChronoDisplayMode == CM_HHHMISSX)
+              ChronoDisplayMode = CM_HHHMI_SS;
             else
-              ChronoDisplayMode = 0;
+              ChronoDisplayMode = CM_HHHMISSX;
             EEPROM.update(EEPROM_CHRONODISPLAYMODE, ChronoDisplayMode);
           } else {
-            if (ChronoLapMode < 10)
-              ChronoLapMode += 10;
+            if (ChronoLapMode < LAP_DELTA)
+              ChronoLapMode += LAP_DELTA;
             else
-              ChronoLapMode -= 10;
+              ChronoLapMode -= LAP_DELTA;
             EEPROM.update(EEPROM_CHRONOLAPMODE, ChronoLapMode);
           }
           break;
-        case 'L': // Change the Lap being displayed, if zero, curreent Chrono
-          if (ChronoLapMode < 10)
-            ChronoLapMode = max(ChronoLapMode-1, 0);
+        case KEY_LEFT: // Change the Lap being displayed, if zero, curreent Chrono
+          if (ChronoLapMode < LAP_DELTA)
+            ChronoLapMode = max(ChronoLapMode-1, LAP_NONE);
           else
-            ChronoLapMode = max(ChronoLapMode-1, 10);
+            ChronoLapMode = max(ChronoLapMode-1, LAP_DELTA);
           EEPROM.update(EEPROM_CHRONOLAPMODE, ChronoLapMode);
           break;
-        case 'R': // Change the Lap being displayed, if zero, curreent Chrono
-          if (ChronoLapMode < 10)
-            ChronoLapMode = min(ChronoLapMode+1, 9);
+        case KEY_RIGHT: // Change the Lap being displayed, if zero, curreent Chrono
+          if (ChronoLapMode < LAP_DELTA)
+            ChronoLapMode = min(ChronoLapMode+1, LAP_DELTA-1);
           else
-            ChronoLapMode = min(ChronoLapMode+1, 19);
+            ChronoLapMode = min(ChronoLapMode+1, LAP_SIZEOF-1);
           EEPROM.update(EEPROM_CHRONOLAPMODE, ChronoLapMode);
           break;
-        case 'C': // Stop and reset the Chrono to zero, if displaying a Lap, reset it instead
-          if (LockMode < 4) {
-            if (ChronoLapMode == 0) {
+        case KEY_CLEAR: // Stop and reset the Chrono to zero, if displaying a Lap, reset it instead
+          if (LockMode < LM_CHRONO) {
+            if (ChronoLapMode == LAP_NONE) {
               ChronoHour         = 0;
               ChronoMinute       = 0;
               ChronoSecond       = 0;
@@ -161,9 +161,9 @@ void UserGetChrono(void *) {
             }
           }
           break;
-        case 'E': // Start/Stop the Chrono, if displaying a Lap, record Chrono to it instead
-          if (LockMode < 4) {
-            if (ChronoLapMode == 0) {
+        case KEY_ENTER: // Start/Stop the Chrono, if displaying a Lap, record Chrono to it instead
+          if (LockMode < LM_CHRONO) {
+            if (ChronoLapMode == LAP_NONE) {
               IsChronoActive = !IsChronoActive;
               IsChronoActive ? MessageBuffer = "ACTION:CHRONO-START" : MessageBuffer = "ACTION:CHRONO-STOP";
               EEPROM.update(EEPROM_CHRONOACTIVE, IsChronoActive);
@@ -183,17 +183,17 @@ void UserGetChrono(void *) {
           }
           break;
         default: // Number Keys, change to the appropritate Lap, Zero brings back Chrono
-          if (ChronoLapMode < 10)
+          if (ChronoLapMode < LAP_DELTA)
             ChronoLapMode = KeyPressVal-'0';
           else
-            ChronoLapMode = (KeyPressVal-'0') + 10;
+            ChronoLapMode = (KeyPressVal-'0') + LAP_DELTA;
           EEPROM.update(EEPROM_CHRONOLAPMODE, ChronoLapMode);
       }
     }
     
     // Bring Lap back inside boundary
-    if (ChronoLapMode == 10 || ChronoLapMode == 20) {
-      ChronoLapMode = 0;
+    if (ChronoLapMode == LAP_DELTA || ChronoLapMode >= LAP_SIZEOF) {
+      ChronoLapMode = LAP_NONE;
       EEPROM.update(EEPROM_CHRONOLAPMODE, ChronoLapMode);
     }
   }
@@ -205,31 +205,31 @@ void UserGetChrono(void *) {
 
 // Control user interaction with Date
 void UserChangeDate(void *) {
-  lc.setIntensity(0,LedIntensity);
-  lc.setIntensity(1,LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
+  lc.setIntensity(LOWERLEDROW, LedIntensity);
 
-  DisplayCurrentDate(-1, false);
-  DisplayCurrentTime(-1, false);
+  DisplayCurrentDate(LEDCOLNULL, false);
+  DisplayCurrentTime(LEDCOLNULL, false);
 
   // React to a new Keypress
   if (NewKeyPress) {
     NewKeyPress = false;  // Consume the Keypress
-    if (LockMode < 5) {
+    if (LockMode < LM_DISPLAY) {
       switch (KeyPressVal) {
-        case 'U': // Set the DisplayMode
-          DateDisplayMode++;
-          if (DateDisplayMode > 5)
-            DateDisplayMode = 0;
+        case KEY_UP: // Set the DisplayMode
+          DateDisplayMode = (enum DateDisplayModes)((int)DateDisplayMode + 1);
+          if (DateDisplayMode >= DM_SIZEOF)
+            DateDisplayMode = DM_YYYYMMDD;
           EEPROM.update(EEPROM_DATEDISPLAYMODE, DateDisplayMode);
           break;
-        case 'D': // Set the DisplayMode
-          DateDisplayMode--;
-          if (DateDisplayMode < 0)
-            DateDisplayMode = 5;
+        case KEY_DOWN: // Set the DisplayMode
+          DateDisplayMode = (enum DateDisplayModes)((int)DateDisplayMode - 1);
+          if (DateDisplayMode < DM_YYYYMMDD)
+            DateDisplayMode = DM_SIZEOF-1;
           EEPROM.update(EEPROM_DATEDISPLAYMODE, DateDisplayMode);
           break;
-        case 'R': // Remove DayLightSavingTime offset, if not too close to midnight (easier to manage)
-          if (LockMode < 3) {
+        case KEY_RIGHT: // Remove DayLightSavingTime offset, if not too close to midnight (easier to manage)
+          if (LockMode < LM_TIMEZONE) {
             if (!DSTMode && Hour < 23) {
               Hour += 1;
               DSTMode = true;
@@ -242,9 +242,9 @@ void UserChangeDate(void *) {
             }
           }
           break;
-        case 'L':
-        case 'C': // Toggle DayLightSavingTime offset, if not too close to midnight (easier to manage)
-          if (LockMode < 3) {
+        case KEY_LEFT:
+        case KEY_CLEAR: // Toggle DayLightSavingTime offset, if not too close to midnight (easier to manage)
+          if (LockMode < LM_TIMEZONE) {
             if (DSTMode && Hour > 0) {
               Hour -= 1;
               DSTMode = false;
@@ -257,16 +257,18 @@ void UserChangeDate(void *) {
             }
           }
           break;
-        case 'E': // Shortcut to most visualy usefull Date format
-          DateDisplayMode = 1;
-          EEPROM.update(EEPROM_DATEDISPLAYMODE, DateDisplayMode);
+        case KEY_ENTER: // Clear the LockFault flag
+          if (LockMode < LM_TIMEZONE) {
+            LockFault = false;
+            InitPower = false;
+          }
           break;
         default: // Number Keys, set the DisplayMode
           DateDisplayMode = KeyPressVal - '0';
-          if (DateDisplayMode > 5)
-            DateDisplayMode = 0;
-          else if (DateDisplayMode < 0)
-            DateDisplayMode = 5;
+          if (DateDisplayMode >= DM_SIZEOF)
+            DateDisplayMode = DM_YYYYMMDD;
+          else if (DateDisplayMode < DM_YYYYMMDD)
+            DateDisplayMode = DM_SIZEOF-1;
           EEPROM.update(EEPROM_DATEDISPLAYMODE, DateDisplayMode);
       }
     }
@@ -279,35 +281,35 @@ void UserChangeDate(void *) {
 
 // Control user interaction with Time
 void UserChangeTime(void *) {
-  lc.setIntensity(0,LedIntensity);
-  lc.setIntensity(1,LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
+  lc.setIntensity(LOWERLEDROW, LedIntensity);
 
   // 
   if (TimeZoneOffsetHr == 12 && TimeZoneOffsetMi == 00)
-    DisplayCurrentDate(-1, false);
+    DisplayCurrentDate(LEDCOLNULL, false);
   else
     DisplayTZAltTime(NULL);
-  DisplayCurrentTime(-1, false);
+  DisplayCurrentTime(LEDCOLNULL, false);
 
   // React to a new Keypress
   if (NewKeyPress) {
     NewKeyPress = false; // Consume the Keypress
-    if (LockMode < 5) {
+    if (LockMode < LM_DISPLAY) {
       switch (KeyPressVal) {
-        case 'U': // Set the DisplayMode
-          TimeDisplayMode++;
-          if (TimeDisplayMode > 5)
-            TimeDisplayMode = 0;
+        case KEY_UP: // Set the DisplayMode
+          TimeDisplayMode = (enum TimeDisplayModes)((int)TimeDisplayMode + 1);
+          if (TimeDisplayMode >= TM_SIZEOF)
+            TimeDisplayMode = TM_HHMISS_X;
           EEPROM.update(EEPROM_TIMEDISPLAYMODE, TimeDisplayMode);
           break;
-        case 'D': // Set the DisplayMode
-          TimeDisplayMode--;
-          if (TimeDisplayMode < 0)
-            TimeDisplayMode = 5;
+        case KEY_DOWN: // Set the DisplayMode
+          TimeDisplayMode = (enum TimeDisplayModes)((int)TimeDisplayMode - 1);
+          if (TimeDisplayMode < TM_HHMISS_X)
+            TimeDisplayMode = TM_SIZEOF-1;
           EEPROM.update(EEPROM_TIMEDISPLAYMODE, TimeDisplayMode);
           break;
-        case 'R': // Increment the Alternate TimeZone offset
-          if (LockMode < 3) { 
+        case KEY_RIGHT: // Increment the Alternate TimeZone offset
+          if (LockMode < LM_TIMEZONE) { 
             if (TimeZoneOffsetMi == 0)
               TimeZoneOffsetMi = 30;
             else {
@@ -324,8 +326,8 @@ void UserChangeTime(void *) {
             UpdateTZAlt(NULL); 
           }
           break;
-        case 'L': // Decrement the Alternate TimeZone offset
-          if (LockMode < 3) {
+        case KEY_LEFT: // Decrement the Alternate TimeZone offset
+          if (LockMode < LM_TIMEZONE) {
             if (TimeZoneOffsetMi == 0) {
               TimeZoneOffsetMi = 30;
               TimeZoneOffsetHr--;
@@ -341,8 +343,8 @@ void UserChangeTime(void *) {
             UpdateTZAlt(NULL); 
           }
           break;
-        case 'C': // Reset the Alternate TimeZone offset
-          if (LockMode < 3) {
+        case KEY_CLEAR: // Reset the Alternate TimeZone offset
+          if (LockMode < LM_TIMEZONE) {
             TimeZoneOffsetHr = 12;
             TimeZoneOffsetMi = 00;
             EEPROM.update(EEPROM_TIMEZONEOFFSETHR, TimeZoneOffsetHr);
@@ -351,16 +353,18 @@ void UserChangeTime(void *) {
             HourTZAlt   = Hour;
           }
           break;
-        case 'E': // Shortcut to most visualy usefull Time format
-          TimeDisplayMode = 2;
-          EEPROM.update(EEPROM_TIMEDISPLAYMODE, TimeDisplayMode);
+        case KEY_ENTER: // Clear the LockFault flag
+          if (LockMode < LM_TIMEZONE) {
+            LockFault = false;
+            InitPower = false;
+          }
           break;
         default: // Number Keys, set the DisplayMode
           TimeDisplayMode = KeyPressVal - '0';
-          if (TimeDisplayMode > 5)
-            TimeDisplayMode = 0;
-          else if (TimeDisplayMode < 0)
-            TimeDisplayMode = 5;
+          if (TimeDisplayMode >= TM_SIZEOF)
+            TimeDisplayMode = TM_HHMISS_X;
+          else if (TimeDisplayMode < TM_HHMISS_X)
+            TimeDisplayMode = TM_SIZEOF-1;
           EEPROM.update(EEPROM_TIMEDISPLAYMODE, TimeDisplayMode);
       }
     }
@@ -373,55 +377,54 @@ void UserChangeTime(void *) {
 
 // Change the brightness of the LED segment display
 void UserChangeDim(void *) {
-  DisplayCurrentTime(-1, false);
+  DisplayCurrentTime(LEDCOLNULL, false);
 
   //Inline text display on the upper row
-  lc.setChar(0,7,'L',false);
-  lc.setChar(0,6,'E',false);
-  //lc.setChar(0,5,'V',false);
-  lc.setRow(0,5,SpecChar[CH_V]);
-  lc.setChar(0,4,'E',false);
-  lc.setChar(0,3,'L',false);
-  lc.setChar(0,2,' ',false);
+  lc.setChar(UPPERLEDROW, LEDCOL0, 'L', false);
+  lc.setChar(UPPERLEDROW, LEDCOL1, 'E', false);
+  lc.setRow(UPPERLEDROW,  LEDCOL2, SpecChar[CHR_V]);
+  lc.setChar(UPPERLEDROW, LEDCOL3, 'E', false);
+  lc.setChar(UPPERLEDROW, LEDCOL4, 'L', false);
+  lc.setChar(UPPERLEDROW, LEDCOL5, ' ', false);
 
   // React to a new Keypress
   if (NewKeyPress) {
     NewKeyPress = false; // Consume the Keypress
 
     switch (KeyPressVal) {
-      case 'U': // Increment the brightness, capped at 0xF
-        lc.shutdown(0,false);
-        lc.shutdown(1,false);
-        LedIntensity = min(LedIntensity+1,0xf);
+      case KEY_UP: // Increment the brightness, capped at 0xF
+        lc.shutdown(UPPERLEDROW, false);
+        lc.shutdown(LOWERLEDROW, false);
+        LedIntensity = min(LedIntensity+1, LEDMAXINTENSITY);
         break;
-      case 'R': // Set the brightness at 0xD
-        lc.shutdown(0,false);
-        lc.shutdown(1,false);
+      case KEY_RIGHT: // Set the brightness at 0xD
+        lc.shutdown(UPPERLEDROW, false);
+        lc.shutdown(LOWERLEDROW, false);
         LedIntensity = 13;
         break;
-      case 'D': // Decrement the brightness, floored at 0x0
-        lc.shutdown(0,false);
-        lc.shutdown(1,false);
-        LedIntensity = max(LedIntensity-1,0x0);
+      case KEY_DOWN: // Decrement the brightness, floored at 0x0
+        lc.shutdown(UPPERLEDROW, false);
+        lc.shutdown(LOWERLEDROW, false);
+        LedIntensity = max(LedIntensity-1, 0x0);
         break;
-      case 'L': // Set the brightness at 0xB
-        lc.shutdown(0,false);
-        lc.shutdown(1,false);
+      case KEY_LEFT: // Set the brightness at 0xB
+        lc.shutdown(UPPERLEDROW, false);
+        lc.shutdown(LOWERLEDROW, false);
         LedIntensity = 11;
         break;
-      case 'C': // Set the brightness bellow 0x0, so completely off
-        LedIntensity = -1;
-        lc.shutdown(0,true);
-        lc.shutdown(1,true);
+      case KEY_CLEAR: // Set the brightness bellow 0x0, so completely off
+        LedIntensity = LEDOFFINTENSITY;
+        lc.shutdown(UPPERLEDROW, true);
+        lc.shutdown(LOWERLEDROW, true);
         break;
-      case 'E': // Set the brightness at 0xF
-        lc.shutdown(0,false);
-        lc.shutdown(1,false);
-        LedIntensity = 0xf;
+      case KEY_ENTER: // Set the brightness at 0xF
+        lc.shutdown(UPPERLEDROW, false);
+        lc.shutdown(LOWERLEDROW, false);
+        LedIntensity = LEDMAXINTENSITY;
         break;
       default: // Number Keys, Set the brightness at the coresponding value
-        lc.shutdown(0,false);
-        lc.shutdown(1,false);
+        lc.shutdown(UPPERLEDROW, false);
+        lc.shutdown(LOWERLEDROW, false);
         LedIntensity = KeyPressVal - '0';
     }
     MessageBuffer = "ACTION:DIM-" + String(LedIntensity);  
@@ -433,13 +436,13 @@ void UserChangeDim(void *) {
   int display_step;
 
   display_step = display_acc-display_acc%10;
-  lc.setDigit(0,1,(display_step/10),false);
+  lc.setDigit(UPPERLEDROW, LEDCOL6, (display_step/10), false);
   display_acc = display_acc-display_step;
 
-  lc.setDigit(0,0,display_acc,false);
+  lc.setDigit(UPPERLEDROW, LEDCOL7, display_acc, false);
 
-  lc.setIntensity(0,LedIntensity);
-  lc.setIntensity(1,LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
+  lc.setIntensity(LOWERLEDROW, LedIntensity);
 }
 
 //     #####     #####     #####     #####     #####
@@ -516,8 +519,8 @@ void GetEEPROMVal(void *) {
   }
 
   // Laps for Chrono
-  for(int i=0; i<9; i++) { 
-    LapOffset = i*5; 
+  for(int i=0; i<NBCHRONOLAP; i++) { 
+    LapOffset = i*SIZECHRONOLAP; 
     ChronoLap[i].Hour         = (EEPROM.read(EEPROM_CHRONOLAPLIST + LapOffset)*100) + EEPROM.read(EEPROM_CHRONOLAPLIST + LapOffset+1); // Split over 2 bytes 
     ChronoLap[i].Minute       = EEPROM.read( EEPROM_CHRONOLAPLIST + LapOffset+2); 
     ChronoLap[i].Second       = EEPROM.read( EEPROM_CHRONOLAPLIST + LapOffset+3); 
@@ -559,49 +562,53 @@ void GetEEPROMVal(void *) {
 
   // Misc display control vars
   LedIntensity         = EEPROM.read(EEPROM_LEDINTENSITY);
-  if (LedIntensity > 15) {
-    LedIntensity = 8;
-    EEPROM.update(EEPROM_LEDINTENSITY, 8);
+  if (LedIntensity > LEDMAXINTENSITY) {
+    LedIntensity = LEDDEFAULTINTENSITY;
+    EEPROM.update(EEPROM_LEDINTENSITY, LEDDEFAULTINTENSITY);
   }
   DateDisplayMode      = EEPROM.read(EEPROM_DATEDISPLAYMODE);
-  if (DateDisplayMode > 5) {
-    DateDisplayMode = 0;
-    EEPROM.update(EEPROM_DATEDISPLAYMODE, 0);
+  if (DateDisplayMode >= DM_SIZEOF) {
+    DateDisplayMode = DM_YYYYMMDD;
+    EEPROM.update(EEPROM_DATEDISPLAYMODE, DM_YYYYMMDD);
   }
   TimeDisplayMode      = EEPROM.read(EEPROM_TIMEDISPLAYMODE);
-  if (TimeDisplayMode > 5) {
-    TimeDisplayMode = 0;
-    EEPROM.update(EEPROM_TIMEDISPLAYMODE, 0);
+  if (TimeDisplayMode >= TM_SIZEOF) {
+    TimeDisplayMode = TM_HHMISS_X;
+    EEPROM.update(EEPROM_TIMEDISPLAYMODE, TimeDisplayMode);
   }
   ChronoDisplayMode    = EEPROM.read(EEPROM_CHRONODISPLAYMODE);
-  if (ChronoDisplayMode > 1) {
-    ChronoDisplayMode = 0;
-    EEPROM.update(EEPROM_CHRONODISPLAYMODE, 0);
+  if (ChronoDisplayMode >= CM_SIZEOF) {
+    ChronoDisplayMode = CM_HHHMISSX;
+    EEPROM.update(EEPROM_CHRONODISPLAYMODE, ChronoDisplayMode);
   }
   ChronoLapMode        = EEPROM.read(EEPROM_CHRONOLAPMODE);
-  if (ChronoLapMode > 19 || ChronoLapMode == 10) {
-    ChronoLapMode = 0;
-    EEPROM.update(EEPROM_CHRONOLAPMODE, 0);
+  if (ChronoLapMode >= LAP_SIZEOF || ChronoLapMode == LAP_DELTA) {
+    ChronoLapMode = LAP_NONE;
+    EEPROM.update(EEPROM_CHRONOLAPMODE, ChronoLapMode);
   }
   CountDownDisplayMode = EEPROM.read(EEPROM_COUNTDOWNDISPLAYMODE);
-  if (CountDownDisplayMode > 1) {
-    CountDownDisplayMode = 0;
-    EEPROM.update(EEPROM_COUNTDOWNDISPLAYMODE, 0);
+  if (CountDownDisplayMode >= CDM_SIZEOF) {
+    CountDownDisplayMode = CDM_HHHMISSS;
+    EEPROM.update(EEPROM_COUNTDOWNDISPLAYMODE, CountDownDisplayMode);
   }
 
   //Lock fonctionality
-  LockMode           = EEPROM.read(EEPROM_LOCKMODE);
-  if (LockMode > 6) { // If bigger than 6, it can't be valid
-    LockMode = 0;
+  LockMode    = EEPROM.read(EEPROM_LOCKMODE);
+  LockAttempt = EEPROM.read(EEPROM_LOCKATTEMPT);
+  if (LockMode >= LM_SIZEOF || LockMode < LM_NONE) { // If smaller then 0 or bigger then 6, it can't be valid
+    LockMode   = LM_NONE;
+    LockTemper = false;
     EEPROM.update(EEPROM_LOCKMODE, 0);
+    EEPROM.update(EEPROM_LOCKATTEMPT, 0);
   }
   LockPassCodeLength = EEPROM.read(EEPROM_LOCKPASSCODELENGTH);
-  if (LockPassCodeLength > 16) { // If longer than 16, it can't be valid
+  if (LockPassCodeLength > MAXPWDLENGTH) { // If longer than 16, it can't be valid
     LockPassCodeLength = 0;
     EEPROM.update(EEPROM_LOCKPASSCODELENGTH, 0);
   }
   for (int i=0; i<LockPassCodeLength; i++)
     LockPassCode[i] = EEPROM.read(EEPROM_LOCKPASSCODE + i);
+  LockTemper = LockAttempt >= MAXPWDATTEMPT;
 }
 
 //     #####     #####     #####     #####     #####

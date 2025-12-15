@@ -16,10 +16,10 @@
 //  |--5--|  .1.
 // 0b12345678
 
-// Display the current Date in the specified Mode(format)
+// Display the current Date in the specified Mode(format) (Zero=ISO 8601)
 //bool DisplayCurrentDate(int SkipChar, int ForceModeZero)
 
-// Display the current Time in the specified Mode(format)
+// Display the current Time in the specified Mode(format) (Zero=ISO 8601)
 //bool DisplayCurrentTime(int SkipChar, bool ForceModeZero)
 
 // Display the current AlternateTime (TimeZone) in the specified Mode(format)
@@ -43,18 +43,20 @@
 // Set every single segments to ON at full brightness, used only if the Knob is not correctly set
 //void DisplayTestPatern(void *)
 
+//enum LCDUpDown, keys, displayModes
+
 //     #####     #####     #####     #####     #####
 //     #####     #####     #####     #####     #####
 //     #####     #####     #####     #####     #####
 
-// Display the current Date in the specified Mode(format)
-bool DisplayCurrentDate(int SkipChar, int ForceModeZero) {
-  int DisplayVal[8];
+// Display the current Date in the specified Mode(format) (Zero=ISO 8601)
+bool DisplayCurrentDate(int SkipChar, bool ForceModeZero) {
+  int DisplayVal[8]; // stores YYYYMMDD
 
   int display_acc;
   int display_step;
 
-  lc.setIntensity(0,LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
 
   // Convert single Int to "Char like" for Year with 4 positions
   display_acc = Year;
@@ -93,98 +95,95 @@ bool DisplayCurrentDate(int SkipChar, int ForceModeZero) {
 
   // Display the "Char like" values in their respective position depending on the display mode
   // In UpdateMode, Mode Zero is forced and one of the position is skiped to display the cursor
-  if (DateDisplayMode == 0 || ForceModeZero) {
+  if (DateDisplayMode == DM_YYYYMMDD || ForceModeZero) {
     //YYYYMMDD
-    if (SkipChar != 7)
-      lc.setDigit(0,7,DisplayVal[0],false);
+    if (SkipChar != LEDCOL0)
+      lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
     else
       ToggleCurChar = DisplayVal[0] + '0';
 
-    if (SkipChar != 6)
-      lc.setDigit(0,6,DisplayVal[1],false);
+    if (SkipChar != LEDCOL1)
+      lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
     else
       ToggleCurChar = DisplayVal[1] + '0';
 
-    if (SkipChar != 5)
-      lc.setDigit(0,5,DisplayVal[2],false);
+    if (SkipChar != LEDCOL2)
+      lc.setDigit(UPPERLEDROW, LEDCOL2, DisplayVal[2], false);
     else
       ToggleCurChar = DisplayVal[2] + '0';
 
-    if (SkipChar != 4)
-      lc.setRow(0,4,SpecChar[DisplayVal[3]+10]);
+    if (SkipChar != LEDCOL3)
+      lc.setRow(UPPERLEDROW, LEDCOL3, SpecChar[DisplayVal[3]+CHR_DOTOFFET]);
     else
       ToggleCurChar = DisplayVal[3] + '0';
 
 
-    if (SkipChar != 3)
-      lc.setDigit(0,3,DisplayVal[4],false);
+    if (SkipChar != LEDCOL4)
+      lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[4], false);
     else
       ToggleCurChar = DisplayVal[4] + '0';
 
-    if (SkipChar != 2)
-      lc.setRow(0,2,SpecChar[DisplayVal[5]+10]);
+    if (SkipChar != LEDCOL5)
+      lc.setRow(UPPERLEDROW, LEDCOL5, SpecChar[DisplayVal[5]+CHR_DOTOFFET]);
     else
       ToggleCurChar = DisplayVal[5] + '0';
 
-    if (SkipChar != 1)
-      lc.setDigit(0,1,DisplayVal[6],false);
+    if (SkipChar != LEDCOL6)
+      lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[6], false);
     else
       ToggleCurChar = DisplayVal[6] + '0';
 
-    if (SkipChar != 0)
-      lc.setDigit(0,0,DisplayVal[7],false);
+    if (SkipChar != LEDCOL7)
+      lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[7], false);
     else
       ToggleCurChar = DisplayVal[7] + '0';
-  } else if (DateDisplayMode == 1 ) {
+  } else if (DateDisplayMode == DM_YYMMDD ) {
     //YY-MM-DD
-    lc.setDigit(0,7,DisplayVal[2],false);
-    lc.setDigit(0,6,DisplayVal[3],false);
-    lc.setRow(0,5,SpecChar[BAR]);
-    lc.setDigit(0,4,DisplayVal[4],false);
-    lc.setDigit(0,3,DisplayVal[5],false);
-    lc.setRow(0,2,SpecChar[BAR]);
-    lc.setDigit(0,1,DisplayVal[6],false);
-    lc.setDigit(0,0,DisplayVal[7],false);
-  } else if (DateDisplayMode == 2 ) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[2], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[3], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[CHR_BAR]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[4], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[5], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BAR]);
+    lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[6], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[7], false);
+  } else if (DateDisplayMode == DM_YY_MM_DD ) {
     //YY MM DD
-    lc.setDigit(0,7,DisplayVal[2],false);
-    lc.setDigit(0,6,DisplayVal[3],false);
-    lc.setRow(0,5,SpecChar[BLANK]);
-    lc.setDigit(0,4,DisplayVal[4],false);
-    lc.setDigit(0,3,DisplayVal[5],false);
-    lc.setRow(0,2,SpecChar[BLANK]);
-    lc.setDigit(0,1,DisplayVal[6],false);
-    lc.setDigit(0,0,DisplayVal[7],false);
-  } else if (DateDisplayMode == 3 ) {
-    //MMDDYYYY
-    lc.setDigit(0,7,DisplayVal[4],false);
-    lc.setRow(0,6,SpecChar[DisplayVal[5]+10]);
-    lc.setDigit(0,5,DisplayVal[6],false);
-    lc.setRow(0,4,SpecChar[DisplayVal[7]+10]);
-    lc.setDigit(0,3,DisplayVal[0],false);
-    lc.setDigit(0,2,DisplayVal[1],false);
-    lc.setDigit(0,1,DisplayVal[2],false);
-    lc.setDigit(0,0,DisplayVal[3],false);
-  } else if (DateDisplayMode == 4 ) {
-    //DDMMYYYY
-    lc.setDigit(0,7,DisplayVal[6],false);
-    lc.setRow(0,6,SpecChar[DisplayVal[7]+10]);
-    lc.setDigit(0,5,DisplayVal[4],false);
-    lc.setRow(0,4,SpecChar[DisplayVal[5]+10]);
-    lc.setDigit(0,3,DisplayVal[0],false);
-    lc.setDigit(0,2,DisplayVal[1],false);
-    lc.setDigit(0,1,DisplayVal[2],false);
-    lc.setDigit(0,0,DisplayVal[3],false);
-  } else if (DateDisplayMode == 5 ) {
-    //YYYYDDMM
-    lc.setDigit(0,7,DisplayVal[0],false);
-    lc.setDigit(0,6,DisplayVal[1],false);
-    lc.setDigit(0,5,DisplayVal[2],false);
-    lc.setRow(0,4,SpecChar[DisplayVal[3]+10]);
-    lc.setDigit(0,3,DisplayVal[6],false);
-    lc.setRow(0,2,SpecChar[DisplayVal[7]+10]);
-    lc.setDigit(0,1,DisplayVal[4],false);
-    lc.setDigit(0,0,DisplayVal[5],false);
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[2], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[3], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[CHR_BLANK]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[4], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[5], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[6], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[7], false);
+  } else if (DateDisplayMode == DM_MMDDYYYY ) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[4], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL1, SpecChar[DisplayVal[5]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL2, DisplayVal[6], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL3, SpecChar[DisplayVal[7]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL5, DisplayVal[1], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[2], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[3], false);
+  } else if (DateDisplayMode == DM_DDMMYYYY ) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[6], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL1, SpecChar[DisplayVal[7]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL2, DisplayVal[4], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL3, SpecChar[DisplayVal[5]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL5, DisplayVal[1], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[2], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[3], false);
+  } else if (DateDisplayMode == DM_YYYYDDMM ) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL2, DisplayVal[2], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL3, SpecChar[DisplayVal[3]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[6], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[DisplayVal[7]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[4], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[5], false);
   }
 
   return true;
@@ -194,16 +193,16 @@ bool DisplayCurrentDate(int SkipChar, int ForceModeZero) {
 //     #####     #####     #####     #####     #####
 //     #####     #####     #####     #####     #####
 
-// Display the current Time in the specified Mode(format)
+// Display the current Time in the specified Mode(format) (Zero=ISO 8601)
 bool DisplayCurrentTime(int SkipChar, bool ForceModeZero) {
-  int DisplayVal[7];
-  int DisplayValAlt[2];
+  int DisplayVal[7];    // stores HHMMSSX
+  int DisplayValAlt[2]; // stores HH for AM or HH-12 for PM
   bool IndPM = false;
 
   int display_acc;
   int display_step;
 
-  lc.setIntensity(1,LedIntensity);
+  lc.setIntensity(LOWERLEDROW, LedIntensity);
 
   // Convert single Int to "Char like" for Hour with 2 positions
   display_acc = Hour;
@@ -215,7 +214,7 @@ bool DisplayCurrentTime(int SkipChar, bool ForceModeZero) {
   DisplayVal[1] = display_acc;
 
   // If in one of the 12H modes, compute the AM/PM values
-  if (TimeDisplayMode >= 4) {
+  if (TimeDisplayMode == TM_HHPMISSX || TimeDisplayMode == TM_HHPMI_SS) {
     if (Hour == 0)
       display_acc = 12;
     else if (Hour == 12) {
@@ -258,93 +257,91 @@ bool DisplayCurrentTime(int SkipChar, bool ForceModeZero) {
 
   // Display the "Char like" values in their respective position depending on the display mode
   // In UpdateMode, Mode Zero is forced and one of the position is skiped to display the cursor
-  if (TimeDisplayMode == 0 || ForceModeZero) {
+  if (TimeDisplayMode == TM_HHMISS_X || ForceModeZero) {
     //HHMISS X
-    if (SkipChar != 7)
-      lc.setDigit(1,7,DisplayVal[0],false);
+    if (SkipChar != LEDCOL0)
+      lc.setDigit(LOWERLEDROW, LEDCOL0, DisplayVal[0], false);
     else
       ToggleCurChar = DisplayVal[0] + '0';
 
-    if (SkipChar != 6)
-      lc.setRow(1,6,SpecChar[DisplayVal[1]+10]);
+    if (SkipChar != LEDCOL1)
+      lc.setRow(LOWERLEDROW, LEDCOL1, SpecChar[DisplayVal[1]+CHR_DOTOFFET]);
     else
       ToggleCurChar = DisplayVal[1] + '0';
 
 
-    if (SkipChar != 5)
-      lc.setDigit(1,5,DisplayVal[2],false);
+    if (SkipChar != LEDCOL2)
+      lc.setDigit(LOWERLEDROW, LEDCOL2, DisplayVal[2], false);
     else
       ToggleCurChar = DisplayVal[2] + '0';
 
-    if (SkipChar != 4)
-      lc.setRow(1,4,SpecChar[DisplayVal[3]+10]);
+    if (SkipChar != LEDCOL3)
+      lc.setRow(LOWERLEDROW, LEDCOL3, SpecChar[DisplayVal[3]+CHR_DOTOFFET]);
     else
       ToggleCurChar = DisplayVal[3] + '0';
 
+    lc.setDigit(LOWERLEDROW, LEDCOL4, DisplayVal[4], false);
+    //lc.setRow(LOWERLEDROW, LEDCOL5, SpecChar[DisplayVal[5]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL5, DisplayVal[5], false);
 
-    lc.setDigit(1,3,DisplayVal[4],false);
-    //lc.setRow(1,2,SpecChar[DisplayVal[5]+10]);
-    lc.setDigit(1,2,DisplayVal[5],false);
-
-
-    lc.setRow(1,1,SpecChar[BLANK]);
-    lc.setDigit(1,0,DisplayVal[6],false);
-  } else if (TimeDisplayMode == 1 ) {
+    lc.setRow(LOWERLEDROW,   LEDCOL6, SpecChar[CHR_BLANK]);
+    lc.setDigit(LOWERLEDROW, LEDCOL7, DisplayVal[6], false);
+  } else if (TimeDisplayMode == TM_HH_MISSX ) {
     //HH_MISSX
-    lc.setDigit(1,7,DisplayVal[0],false);
-    lc.setDigit(1,6,DisplayVal[1],false);
-    lc.setRow(1,5,SpecChar[CH_H]);
-    lc.setDigit(1,4,DisplayVal[2],false);
-    lc.setRow(1,3,SpecChar[DisplayVal[3]+10]);
-    lc.setDigit(1,2,DisplayVal[4],false);
-    lc.setRow(1,1,SpecChar[DisplayVal[5]+10]);
-    lc.setDigit(1,0,DisplayVal[6],false);
-  } else if (TimeDisplayMode == 2 ) {
+    lc.setDigit(LOWERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL2, SpecChar[CHR_H]);
+    lc.setDigit(LOWERLEDROW, LEDCOL3, DisplayVal[2], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL4, SpecChar[DisplayVal[3]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL5, DisplayVal[4], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL6, SpecChar[DisplayVal[5]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL7, DisplayVal[6], false);
+  } else if (TimeDisplayMode == TM_HHMI_SS ) {
     //HH_MI SS
-    lc.setDigit(1,7,DisplayVal[0],false);
-    lc.setDigit(1,6,DisplayVal[1],false);
-    lc.setRow(1,5,SpecChar[CH_H]);
-    lc.setDigit(1,4,DisplayVal[2],false);
-    lc.setDigit(1,3,DisplayVal[3],false);
-    lc.setRow(1,2,SpecChar[BLANK]);
-    lc.setDigit(1,1,DisplayVal[4],false);
-    lc.setDigit(1,0,DisplayVal[5],false);
-  } else if (TimeDisplayMode == 3 ) {
+    lc.setDigit(LOWERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL2, SpecChar[CHR_H]);
+    lc.setDigit(LOWERLEDROW, LEDCOL3, DisplayVal[2], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL4, DisplayVal[3], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setDigit(LOWERLEDROW, LEDCOL6, DisplayVal[4], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL7, DisplayVal[5], false);
+  } else if (TimeDisplayMode == TM_HH_MI_SS ) {
     //HH MI SS
-    lc.setDigit(1,7,DisplayVal[0],false);
-    lc.setDigit(1,6,DisplayVal[1],false);
-    lc.setRow(1,5,SpecChar[BLANK]);
-    lc.setDigit(1,4,DisplayVal[2],false);
-    lc.setDigit(1,3,DisplayVal[3],false);
-    lc.setRow(1,2,SpecChar[BLANK]);
-    lc.setDigit(1,1,DisplayVal[4],false);
-    lc.setDigit(1,0,DisplayVal[5],false);
-  } else if (TimeDisplayMode == 4 ) {
+    lc.setDigit(LOWERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL2, SpecChar[CHR_BLANK]);
+    lc.setDigit(LOWERLEDROW, LEDCOL3, DisplayVal[2], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL4, DisplayVal[3], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setDigit(LOWERLEDROW, LEDCOL6, DisplayVal[4], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL7, DisplayVal[5], false);
+  } else if (TimeDisplayMode == TM_HHPMISSX ) {
     //HHPMISSX
-    lc.setDigit(1,7,DisplayValAlt[0],false);
-    lc.setDigit(1,6,DisplayValAlt[1],false);
+    lc.setDigit(LOWERLEDROW, LEDCOL0, DisplayValAlt[0], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL1, DisplayValAlt[1], false);
     if (IndPM)
-      lc.setRow(1,5,SpecChar[CH_P]);
+      lc.setRow(LOWERLEDROW, LEDCOL2, SpecChar[CHR_P]);
     else
-      lc.setRow(1,5,SpecChar[CH_A]);
-    lc.setDigit(1,4,DisplayVal[2],false);
-    lc.setDigit(1,3,DisplayVal[3],false);
-    lc.setRow(1,2,SpecChar[BLANK]);
-    lc.setDigit(1,1,DisplayVal[4],false);
-    lc.setDigit(1,0,DisplayVal[5],false);
-  } else if (TimeDisplayMode == 5 ) {
+      lc.setRow(LOWERLEDROW, LEDCOL2, SpecChar[CHR_A]);
+    lc.setDigit(LOWERLEDROW, LEDCOL3, DisplayVal[2], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL4, DisplayVal[3], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setDigit(LOWERLEDROW, LEDCOL6, DisplayVal[4], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL7, DisplayVal[5], false);
+  } else if (TimeDisplayMode == TM_HHPMI_SS ) {
     //HHPMI SS
-    lc.setDigit(1,7,DisplayValAlt[0],false);
-    lc.setDigit(1,6,DisplayValAlt[1],false);
+    lc.setDigit(LOWERLEDROW, LEDCOL0, DisplayValAlt[0], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL1, DisplayValAlt[1], false);
     if (IndPM)
-      lc.setRow(1,5,SpecChar[CH_P]);
+      lc.setRow(LOWERLEDROW, LEDCOL2, SpecChar[CHR_P]);
     else
-      lc.setRow(1,5,SpecChar[CH_A]);
-    lc.setDigit(1,4,DisplayVal[2],false);
-    lc.setRow(1,3,SpecChar[DisplayVal[3]+10]);
-    lc.setDigit(1,2,DisplayVal[4],false);
-    lc.setRow(1,1,SpecChar[DisplayVal[5]+10]);
-    lc.setDigit(1,0,DisplayVal[6],false);
+      lc.setRow(LOWERLEDROW, LEDCOL2, SpecChar[CHR_A]);
+    lc.setDigit(LOWERLEDROW, LEDCOL3, DisplayVal[2], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL4, SpecChar[DisplayVal[3]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL5, DisplayVal[4], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL6, SpecChar[DisplayVal[5]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL7, DisplayVal[6], false);
   }
 
   return true;
@@ -356,14 +353,14 @@ bool DisplayCurrentTime(int SkipChar, bool ForceModeZero) {
 
 // Display the current AlternateTime (TimeZone) in the specified Mode(format)
 void DisplayTZAltTime(void *) {
-  int DisplayVal[7];
-  int DisplayValAlt[2];
+  int DisplayVal[4];    // stores HHMM
+  int DisplayValAlt[2]; // stores HH for AM or HH-12 for PM
   bool IndPM = false;
 
   int display_acc;
   int display_step;
 
-  lc.setIntensity(0,LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
 
   // Convert single Int to "Char like" for Hour with 2 positions
   display_acc = HourTZAlt;
@@ -375,7 +372,7 @@ void DisplayTZAltTime(void *) {
   DisplayVal[1] = display_acc;
 
   // If in one of the 12H modes, compute the AM/PM values
-  if (TimeDisplayMode >= 4) {
+  if (TimeDisplayMode == TM_HHPMISSX || TimeDisplayMode == TM_HHPMI_SS) {
     if (HourTZAlt == 0)
       display_acc = 12;
     else if (HourTZAlt == 12) {
@@ -405,49 +402,49 @@ void DisplayTZAltTime(void *) {
   DisplayVal[3] = display_acc;
 
   // Display the "Char like" values in their respective position depending on the display mode
-  if (TimeDisplayMode == 0 ) {
+  if (TimeDisplayMode == TM_HHMISS_X ) {
     //HHMI
-    lc.setDigit(0,7,DisplayVal[0],false);
-    lc.setRow(0,6,SpecChar[DisplayVal[1]+10]);
-    lc.setDigit(0,5,DisplayVal[2],false);
-    lc.setRow(0,4,SpecChar[DisplayVal[3]+10]);
-    lc.setRow(0,3,SpecChar[BLANK]);
-    lc.setRow(0,2,SpecChar[BLANK]);
-    lc.setRow(0,1,SpecChar[BLANK]);
-    lc.setRow(0,0,SpecChar[BLANK]);
-  } else if (TimeDisplayMode == 1 || TimeDisplayMode == 2) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL1, SpecChar[DisplayVal[1]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL2, DisplayVal[2], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL3, SpecChar[DisplayVal[3]+CHR_DOTOFFET]);
+    lc.setRow(UPPERLEDROW,   LEDCOL4, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL6, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL7, SpecChar[CHR_BLANK]);
+  } else if (TimeDisplayMode == TM_HH_MISSX || TimeDisplayMode == TM_HHMI_SS) {
     //HH_MI
-    lc.setDigit(0,7,DisplayVal[0],false);
-    lc.setDigit(0,6,DisplayVal[1],false);
-    lc.setRow(0,5,SpecChar[CH_H]);
-    lc.setDigit(0,4,DisplayVal[2],false);
-    lc.setDigit(0,3,DisplayVal[3],false);
-    lc.setRow(0,2,SpecChar[BLANK]);
-    lc.setRow(0,1,SpecChar[BLANK]);
-    lc.setRow(0,0,SpecChar[BLANK]);
-  } else if (TimeDisplayMode == 3 ) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[CHR_H]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[2], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[3], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL6, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL7, SpecChar[CHR_BLANK]);
+  } else if (TimeDisplayMode == TM_HH_MI_SS ) {
     //HH MI
-    lc.setDigit(0,7,DisplayVal[0],false);
-    lc.setDigit(0,6,DisplayVal[1],false);
-    lc.setRow(0,5,SpecChar[BLANK]);
-    lc.setDigit(0,4,DisplayVal[2],false);
-    lc.setDigit(0,3,DisplayVal[3],false);
-    lc.setRow(0,2,SpecChar[BLANK]);
-    lc.setRow(0,1,SpecChar[BLANK]);
-    lc.setRow(0,0,SpecChar[BLANK]);
-  } else if (TimeDisplayMode == 4 || TimeDisplayMode == 5) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[CHR_BLANK]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[2], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[3], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL6, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL7, SpecChar[CHR_BLANK]);
+  } else if (TimeDisplayMode == TM_HHPMISSX || TimeDisplayMode == TM_HHPMI_SS) {
     //HHPMI
-    lc.setDigit(0,7,DisplayValAlt[0],false);
-    lc.setDigit(0,6,DisplayValAlt[1],false);
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayValAlt[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayValAlt[1], false);
     if (IndPM)
-      lc.setRow(0,5,SpecChar[CH_P]);
+      lc.setRow(UPPERLEDROW, LEDCOL2, SpecChar[CHR_P]);
     else
-      lc.setRow(0,5,SpecChar[CH_A]);
-    lc.setDigit(0,4,DisplayVal[2],false);
-    lc.setDigit(0,3,DisplayVal[3],false);
-    lc.setRow(0,2,SpecChar[BLANK]);
-    lc.setRow(0,1,SpecChar[BLANK]);
-    lc.setRow(0,0,SpecChar[BLANK]);
+      lc.setRow(UPPERLEDROW, LEDCOL2, SpecChar[CHR_A]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[2], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[3], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL6, SpecChar[CHR_BLANK]);
+    lc.setRow(UPPERLEDROW,   LEDCOL7, SpecChar[CHR_BLANK]);
   }
 }
 
@@ -457,7 +454,7 @@ void DisplayTZAltTime(void *) {
 
 // Display the current Chrono in the specified Mode(format)
 void DisplayCurrentChrono(void *) {
-  int DisplayVal[8];
+  int DisplayVal[8]; // Stores HHHMISSX
 
   int display_acc;
   int display_step;
@@ -497,26 +494,26 @@ void DisplayCurrentChrono(void *) {
   DisplayVal[7] = ChronoTenthsSecond;
 
   // Display the "Char like" values in their respective position depending on the display mode
-  if (ChronoDisplayMode == 0) {
+  if (ChronoDisplayMode == CM_HHHMISSX) {
     //HHHMISSX
-    lc.setDigit(0,7,DisplayVal[0],false);
-    lc.setDigit(0,6,DisplayVal[1],false);
-    lc.setRow(0,5,SpecChar[DisplayVal[2]+10]);
-    lc.setDigit(0,4,DisplayVal[3],false);
-    lc.setRow(0,3,SpecChar[DisplayVal[4]+10]);
-    lc.setDigit(0,2,DisplayVal[5],false);
-    lc.setRow(0,1,SpecChar[DisplayVal[6]+10]);
-    lc.setDigit(0,0,DisplayVal[7],false);
-  } else if (ChronoDisplayMode == 1 ) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[DisplayVal[2]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[3], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL4, SpecChar[DisplayVal[4]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL5, DisplayVal[5], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL6, SpecChar[DisplayVal[6]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[7], false);
+  } else if (ChronoDisplayMode == CM_HHHMI_SS ) {
     //HHHMI_SS
-    lc.setDigit(0,7,DisplayVal[0],false);
-    lc.setDigit(0,6,DisplayVal[1],false);
-    lc.setRow(0,5,SpecChar[DisplayVal[2]+10]);
-    lc.setDigit(0,4,DisplayVal[3],false);
-    lc.setDigit(0,3,DisplayVal[4],false);
-    lc.setRow(0,2,SpecChar[BLANK]);
-    lc.setDigit(0,1,DisplayVal[5],false);
-    lc.setDigit(0,0,DisplayVal[6],false); 
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[DisplayVal[2]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[3], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[4], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[5], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[6], false); 
   }
 
 }
@@ -527,12 +524,12 @@ void DisplayCurrentChrono(void *) {
 
 // Display the current ChronoLap in the specified Mode(format)
 void DisplayCurrentLap(void *) {
-  int DisplayVal[8];
+  int DisplayVal[8]; // Stores HHHMISSX
 
   int display_acc;
   int display_step;
 
-  int Lap = (ChronoLapMode%10)-1;
+  int Lap = (ChronoLapMode%LAP_DELTA)-1;
 
   // Convert single Int to "Char like" for Hour with 3 positions
   display_acc = ChronoLap[Lap].Hour;
@@ -569,26 +566,26 @@ void DisplayCurrentLap(void *) {
   DisplayVal[7] = ChronoLap[Lap].TenthsSecond;
 
   // Display the "Char like" values in their respective position depending on the display mode
-  if (ChronoDisplayMode == 0) {
+  if (ChronoDisplayMode == CM_HHHMISSX) {
     //HHHMISSX
-    lc.setDigit(1,7,DisplayVal[0],false);
-    lc.setDigit(1,6,DisplayVal[1],false);
-    lc.setRow(1,5,SpecChar[DisplayVal[2]+10]);
-    lc.setDigit(1,4,DisplayVal[3],false);
-    lc.setRow(1,3,SpecChar[DisplayVal[4]+10]);
-    lc.setDigit(1,2,DisplayVal[5],false);
-    lc.setRow(1,1,SpecChar[DisplayVal[6]+10]);
-    lc.setDigit(1,0,DisplayVal[7],false);
-  } else if (ChronoDisplayMode == 1 ) {
+    lc.setDigit(LOWERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL2, SpecChar[DisplayVal[2]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL3, DisplayVal[3], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL4, SpecChar[DisplayVal[4]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL5, DisplayVal[5], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL6, SpecChar[DisplayVal[6]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL7, DisplayVal[7], false);
+  } else if (ChronoDisplayMode == CM_HHHMI_SS ) {
     //HHHMI_SS
-    lc.setDigit(1,7,DisplayVal[0],false);
-    lc.setDigit(1,6,DisplayVal[1],false);
-    lc.setRow(1,5,SpecChar[DisplayVal[2]+10]);
-    lc.setDigit(1,4,DisplayVal[3],false);
-    lc.setDigit(1,3,DisplayVal[4],false);
-    lc.setRow(1,2,SpecChar[BLANK]);
-    lc.setDigit(1,1,DisplayVal[5],false);
-    lc.setDigit(1,0,DisplayVal[6],false); 
+    lc.setDigit(LOWERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL2, SpecChar[DisplayVal[2]+CHR_DOTOFFET]);
+    lc.setDigit(LOWERLEDROW, LEDCOL3, DisplayVal[3], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL4, DisplayVal[4], false);
+    lc.setRow(LOWERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setDigit(LOWERLEDROW, LEDCOL6, DisplayVal[5], false);
+    lc.setDigit(LOWERLEDROW, LEDCOL7, DisplayVal[6], false); 
   }
 
 }
@@ -599,12 +596,12 @@ void DisplayCurrentLap(void *) {
 
 // Compute and display absolute delta value between current lap and the next (main clock if at the last lap)
 void DisplayDeltaNextLap(void *) {
-  int DisplayVal[8];
+  int DisplayVal[8]; // Stores HHHMISSX
 
   int display_acc;
   int display_step;
 
-  int Lap = (ChronoLapMode%10)-1;
+  int Lap = (ChronoLapMode%LAP_DELTA)-1;
   bool MakeSwap = false;
 
   // _Gr for Greater and _Sm for Smaller
@@ -696,26 +693,26 @@ void DisplayDeltaNextLap(void *) {
   DisplayVal[7] = DeltaSecondGr%10; //DeltaSecond combines Seconds and TenthsSecond
 
   // Display the "Char like" values in their respective position depending on the display mode
-  if (ChronoDisplayMode == 0) {
+  if (ChronoDisplayMode == CM_HHHMISSX) {
     //HHHMISSX
-    lc.setDigit(0,7,DisplayVal[0],false);
-    lc.setDigit(0,6,DisplayVal[1],false);
-    lc.setRow(0,5,SpecChar[DisplayVal[2]+10]);
-    lc.setDigit(0,4,DisplayVal[3],false);
-    lc.setRow(0,3,SpecChar[DisplayVal[4]+10]);
-    lc.setDigit(0,2,DisplayVal[5],false);
-    lc.setRow(0,1,SpecChar[DisplayVal[6]+10]);
-    lc.setDigit(0,0,DisplayVal[7],false);
-  } else if (ChronoDisplayMode == 1 ) {
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[DisplayVal[2]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[3], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL4, SpecChar[DisplayVal[4]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL5, DisplayVal[5], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL6, SpecChar[DisplayVal[6]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[7], false);
+  } else if (ChronoDisplayMode == CM_HHHMI_SS) {
     //HHHMI_SS
-    lc.setDigit(0,7,DisplayVal[0],false);
-    lc.setDigit(0,6,DisplayVal[1],false);
-    lc.setRow(0,5,SpecChar[DisplayVal[2]+10]);
-    lc.setDigit(0,4,DisplayVal[3],false);
-    lc.setDigit(0,3,DisplayVal[4],false);
-    lc.setRow(0,2,SpecChar[BLANK]);
-    lc.setDigit(0,1,DisplayVal[5],false);
-    lc.setDigit(0,0,DisplayVal[6],false); 
+    lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[DisplayVal[2]+CHR_DOTOFFET]);
+    lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[3], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[4], false);
+    lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
+    lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[5], false);
+    lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[6], false); 
   }
 
 }
@@ -726,7 +723,7 @@ void DisplayDeltaNextLap(void *) {
 
 // Display the current CountDown in the specified Mode(format)
 bool DisplayCurrentCountDown(int SkipChar, bool ForceModeZero) {
-  int DisplayVal[8];
+  int DisplayVal[8]; // Stores HHHMISSS
 
   int display_acc;
   int display_step;
@@ -734,23 +731,23 @@ bool DisplayCurrentCountDown(int SkipChar, bool ForceModeZero) {
   // If the CountDown as reached Zero
   if (IsCountDownDone) {
     if(ToggleCurVal) {
-      lc.setChar(0,7,'_',false);
-      lc.setChar(0,6,'_',false);
-      lc.setChar(0,5,'_',false);
-      lc.setChar(0,4,'_',false);
-      lc.setChar(0,3,'_',false);
-      lc.setChar(0,2,'_',false);
-      lc.setChar(0,1,'_',false);
-      lc.setChar(0,0,'_',false);
+      lc.setChar(UPPERLEDROW, LEDCOL0, '_', false);
+      lc.setChar(UPPERLEDROW, LEDCOL1, '_', false);
+      lc.setChar(UPPERLEDROW, LEDCOL2, '_', false);
+      lc.setChar(UPPERLEDROW, LEDCOL3, '_', false);
+      lc.setChar(UPPERLEDROW, LEDCOL4, '_', false);
+      lc.setChar(UPPERLEDROW, LEDCOL5, '_', false);
+      lc.setChar(UPPERLEDROW, LEDCOL6, '_', false);
+      lc.setChar(UPPERLEDROW, LEDCOL7, '_', false);
     } else {
-      lc.setRow(0,7,SpecChar[10]);
-      lc.setRow(0,6,SpecChar[10]);
-      lc.setRow(0,5,SpecChar[10]);
-      lc.setRow(0,4,SpecChar[10]);
-      lc.setRow(0,3,SpecChar[10]);
-      lc.setRow(0,2,SpecChar[10]);
-      lc.setRow(0,1,SpecChar[10]);
-      lc.setRow(0,0,SpecChar[10]);
+      lc.setRow(UPPERLEDROW, LEDCOL0, SpecChar[10]); // zero with a dot
+      lc.setRow(UPPERLEDROW, LEDCOL1, SpecChar[10]);
+      lc.setRow(UPPERLEDROW, LEDCOL2, SpecChar[10]);
+      lc.setRow(UPPERLEDROW, LEDCOL3, SpecChar[10]);
+      lc.setRow(UPPERLEDROW, LEDCOL4, SpecChar[10]);
+      lc.setRow(UPPERLEDROW, LEDCOL5, SpecChar[10]);
+      lc.setRow(UPPERLEDROW, LEDCOL6, SpecChar[10]);
+      lc.setRow(UPPERLEDROW, LEDCOL7, SpecChar[10]);
     }
   }else {
     // Convert single Int to "Char like" for Hour with 3 positions
@@ -790,66 +787,66 @@ bool DisplayCurrentCountDown(int SkipChar, bool ForceModeZero) {
 
     // Display the "Char like" values in their respective position depending on the display mode
     // In UpdateMode, Mode Zero is forced and one of the position is skiped to display the cursor
-    if (CountDownDisplayMode == 0 || ForceModeZero) {
+    if (CountDownDisplayMode == CDM_HHHMISSS || ForceModeZero) {
       //HHHMISSS
-      if (SkipChar != 7)
-        lc.setDigit(0,7,DisplayVal[0],false);
+      if (SkipChar != LEDCOL0)
+        lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
       else
         ToggleCurChar = DisplayVal[0] + '0';
 
-      if (SkipChar != 6)
-        lc.setDigit(0,6,DisplayVal[1],false);
+      if (SkipChar != LEDCOL1)
+        lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
       else
         ToggleCurChar = DisplayVal[1] + '0';
 
-      if (SkipChar != 5)
-        lc.setRow(0,5,SpecChar[DisplayVal[2]+10]);
+      if (SkipChar != LEDCOL2)
+        lc.setRow(UPPERLEDROW, LEDCOL2, SpecChar[DisplayVal[2]+CHR_DOTOFFET]);
       else
         ToggleCurChar = DisplayVal[2] + '0';
 
-      if (SkipChar != 4)
-        lc.setDigit(0,4,DisplayVal[3],false);
+      if (SkipChar != LEDCOL3)
+        lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[3], false);
       else
         ToggleCurChar = DisplayVal[3] + '0';
 
-      if (SkipChar != 3)
-        lc.setRow(0,3,SpecChar[DisplayVal[4]+10]);
+      if (SkipChar != LEDCOL4)
+        lc.setRow(UPPERLEDROW, LEDCOL4, SpecChar[DisplayVal[4]+CHR_DOTOFFET]);
       else
         ToggleCurChar = DisplayVal[4] + '0';
 
-      if (SkipChar != 2)
-        lc.setDigit(0,2,DisplayVal[5],false);
+      if (SkipChar != LEDCOL5)
+        lc.setDigit(UPPERLEDROW, LEDCOL5, DisplayVal[5], false);
       else
         ToggleCurChar = DisplayVal[5] + '0';
 
-      if (SkipChar != 1)
-        lc.setDigit(0,1,DisplayVal[6],false);
+      if (SkipChar != LEDCOL6)
+        lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[6], false);
       else
         ToggleCurChar = DisplayVal[6] + '0';
       
-      if (SkipChar != 0)
-        lc.setDigit(0,0,DisplayVal[7],false);
+      if (SkipChar != LEDCOL7)
+        lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[7], false);
       else
         ToggleCurChar = DisplayVal[7] + '0';
 
-    } else if (CountDownDisplayMode == 1 ) {
+    } else if (CountDownDisplayMode == CDM_HHHMI_SS ) {
       //HHHMI_SS
-      lc.setDigit(0,7,DisplayVal[0],false);
-      lc.setDigit(0,6,DisplayVal[1],false);
-      lc.setRow(0,5,SpecChar[DisplayVal[2]+10]);
-      lc.setDigit(0,4,DisplayVal[3],false);
+      lc.setDigit(UPPERLEDROW, LEDCOL0, DisplayVal[0], false);
+      lc.setDigit(UPPERLEDROW, LEDCOL1, DisplayVal[1], false);
+      lc.setRow(UPPERLEDROW,   LEDCOL2, SpecChar[DisplayVal[2]+CHR_DOTOFFET]);
+      lc.setDigit(UPPERLEDROW, LEDCOL3, DisplayVal[3], false);
 
       // Enven if Mode 1 is specified, if there's more than 99 second, the space is filled
       if (DisplayVal[5] == 0) {
-        lc.setDigit(0,3,DisplayVal[4],false);
-        lc.setRow(0,2,SpecChar[BLANK]);
+        lc.setDigit(UPPERLEDROW, LEDCOL4, DisplayVal[4],false);
+        lc.setRow(UPPERLEDROW,   LEDCOL5, SpecChar[CHR_BLANK]);
       } else {
-        lc.setRow(0,3,SpecChar[DisplayVal[4]+10]);
-        lc.setDigit(0,2,DisplayVal[5],false);
+        lc.setRow(UPPERLEDROW,   LEDCOL4, SpecChar[DisplayVal[4]+CHR_DOTOFFET]);
+        lc.setDigit(UPPERLEDROW, LEDCOL5, DisplayVal[5], false);
       }
 
-      lc.setDigit(0,1,DisplayVal[6],false); 
-      lc.setDigit(0,0,DisplayVal[7],false);
+      lc.setDigit(UPPERLEDROW, LEDCOL6, DisplayVal[6], false); 
+      lc.setDigit(UPPERLEDROW, LEDCOL7, DisplayVal[7], false);
     }
   }
 
@@ -862,21 +859,19 @@ bool DisplayCurrentCountDown(int SkipChar, bool ForceModeZero) {
 
 // When some DisplayMode are not avaiable under the current LockMode, this is displayed
 void ShowLockScreen(void *) {
-  lc.setIntensity(0,LedIntensity);
-  lc.setIntensity(1,LedIntensity);
+  lc.setIntensity(UPPERLEDROW, LedIntensity);
+  lc.setIntensity(LOWERLEDROW, LedIntensity);
 
-  lc.clearDisplay(1);
+  lc.clearDisplay(LOWERLEDROW);
 
-  lc.setChar(0,7,'L',false);
-  //lc.setChar(0,6,'0',false);
-  lc.setRow(0,6,0b00011101); // o
-  lc.setChar(0,5,'c',false);
-  //lc.setRow(0,5,0b01001110); // C
-  lc.setRow(0,4,0b01010111); // K
-  lc.setChar(0,3,'E',false);
-  lc.setChar(0,2,'d',false);
-  lc.setChar(0,1,' ',false);
-  lc.setChar(0,0,' ',false);
+  lc.setChar(UPPERLEDROW, LEDCOL0, 'L', false);
+  lc.setRow(UPPERLEDROW,  LEDCOL1, SpecChar[CHR_o]); // o
+  lc.setChar(UPPERLEDROW, LEDCOL2, 'c', false);
+  lc.setRow(UPPERLEDROW,  LEDCOL3, SpecChar[CHR_k]); // K
+  lc.setChar(UPPERLEDROW, LEDCOL4, 'E', false);
+  lc.setChar(UPPERLEDROW, LEDCOL5, 'd', false);
+  lc.setChar(UPPERLEDROW, LEDCOL6, ' ', false);
+  lc.setChar(UPPERLEDROW, LEDCOL7, ' ', false);
 }
 
 //     #####     #####     #####     #####     #####
@@ -888,65 +883,63 @@ void ShowSetLock(void *) {
   int CurPos = 0;
 
   // If no PassCode set
-  if (LockMode == 0) {
-    lc.setChar(0,7,'5',false);
-    lc.setChar(0,6,'E',false);
-    lc.setRow(0,5,0b00001111); // t
-    lc.setChar(0,4,' ',false);
-    //lc.setChar(0,3,'c',false);
-    lc.setRow(0,3,0b01001110); // C
-    lc.setChar(0,2,'0',false);
-    lc.setChar(0,1,'d',false);
-    lc.setChar(0,0,'E',false);
+  if (LockMode == LM_NONE) {
+    lc.setChar(UPPERLEDROW, LEDCOL0, '5', false);
+    lc.setChar(UPPERLEDROW, LEDCOL1, 'E', false);
+    lc.setRow(UPPERLEDROW,  LEDCOL2, SpecChar[CHR_t]); // t
+    lc.setChar(UPPERLEDROW, LEDCOL3, ' ', false);
+    lc.setRow(UPPERLEDROW,  LEDCOL4, SpecChar[CHR_C]); // C
+    lc.setChar(UPPERLEDROW, LEDCOL5, '0', false);
+    lc.setChar(UPPERLEDROW, LEDCOL6, 'd', false);
+    lc.setChar(UPPERLEDROW, LEDCOL7, 'E', false);
   } else{
-    if (Unlocked == 0) {  // When locked, ask for PassCode
-      lc.setRow(0,7,0b00001111); // t
-      lc.setRow(0,6,0b00111011); // y
-      lc.setChar(0,5,'P',false);
-      lc.setChar(0,4,'E',false);
-      lc.setChar(0,3,' ',false);
-      lc.setChar(0,2,'c',false);
-      //lc.setRow(0,2,0b01001110); // C
-      lc.setChar(0,1,'d',false);
-      lc.setChar(0,0,' ',false);
-    } else if (Unlocked == 1 ) {  // When unlock, show current Mode
-      //lc.setRow(0,7,0b01010100); // M
-      lc.setRow(0,7,0b01000110); // M
-      lc.setRow(0,6,0b01110010); // M
-      lc.setRow(0,5,0b00011101); // o
-      lc.setChar(0,4,'d',false);
-      lc.setChar(0,3,'E',false);
-      lc.setChar(0,2,' ',false);
-      lc.setChar(0,1,'0' + LockMode,false);
-      lc.setChar(0,0,' ',false);
-    } else if (Unlocked == 2 ) {  // If PassCode verif failed
-      lc.setChar(0,7,'F',false);
-      lc.setChar(0,6,'A',false);
-      lc.setChar(0,5,'1',false);
-      lc.setChar(0,4,'L',false);
-      lc.setChar(0,3,' ',false);
-      lc.setChar(0,2,' ',false);
-      lc.setChar(0,1,' ',false);
-      lc.setChar(0,0,' ',false);
+    if (Unlocked == UM_LOCKED) {  // When locked, ask for PassCode
+      lc.setRow(UPPERLEDROW,  LEDCOL0, SpecChar[CHR_t]); // t
+      lc.setRow(UPPERLEDROW,  LEDCOL1, SpecChar[CHR_y]); // y
+      lc.setChar(UPPERLEDROW, LEDCOL2, 'P', false);
+      lc.setChar(UPPERLEDROW, LEDCOL3, 'E', false);
+      lc.setChar(UPPERLEDROW, LEDCOL4, ' ', false);
+      //lc.setChar(UPPERLEDROW, LEDCOL5, 'c', false);
+      lc.setRow(UPPERLEDROW, LEDCOL5, SpecChar[CHR_C]); // C
+      lc.setChar(UPPERLEDROW, LEDCOL6, 'd', false);
+      lc.setChar(UPPERLEDROW, LEDCOL7, ' ', false);
+    } else if (Unlocked == UM_UNLOCKED ) {  // When unlocked, show current Mode
+      lc.setRow(UPPERLEDROW,  LEDCOL0, SpecChar[CHR_M]);   // M
+      lc.setRow(UPPERLEDROW,  LEDCOL1, SpecChar[CHR_M+1]); // M
+      lc.setRow(UPPERLEDROW,  LEDCOL2, SpecChar[CHR_o]);   // o
+      lc.setChar(UPPERLEDROW, LEDCOL3, 'd', false);
+      lc.setChar(UPPERLEDROW, LEDCOL4, 'E', false);
+      lc.setChar(UPPERLEDROW, LEDCOL5, ' ', false);
+      lc.setChar(UPPERLEDROW, LEDCOL6, '0' + LockMode, false);
+      lc.setChar(UPPERLEDROW, LEDCOL7, ' ', false);
+    } else if (Unlocked == UM_FAILED ) {  // If PassCode verif failed
+      lc.setChar(UPPERLEDROW, LEDCOL0, 'F', false);
+      lc.setChar(UPPERLEDROW, LEDCOL1, 'A', false);
+      lc.setChar(UPPERLEDROW, LEDCOL2, '1', false);
+      lc.setChar(UPPERLEDROW, LEDCOL3, 'L', false);
+      lc.setChar(UPPERLEDROW, LEDCOL4, ' ', false);
+      lc.setChar(UPPERLEDROW, LEDCOL5, ' ', false);
+      lc.setChar(UPPERLEDROW, LEDCOL6, ' ', false);
+      lc.setChar(UPPERLEDROW, LEDCOL7, ' ', false);
     }
   }
 
   // Show the cursor and the number of char typed so far
-  CurPos = 7 - (TestPassCodeLength / 2);
+  CurPos = LEDCOL0 - (TestPassCodeLength / 2);
 
-  for (int i=7; i>=0; i--){
+  for (int i=LEDCOL0; i>=0; i--){
     if (CurPos < i)
-      lc.setRow(1,i,0b00001001); // _-
+      lc.setRow(LOWERLEDROW, i, SpecChar[CHR_EQL]);
     if (CurPos > i)
-      lc.setChar(1,i,' ',false);      
+      lc.setChar(LOWERLEDROW, i, ' ', false);      
     if (CurPos == i ) {
-      if (ToggleCurVal && TestPassCodeLength < 16) 
-        lc.setChar(1,CurPos,'_',false);
+      if (ToggleCurVal && TestPassCodeLength < MAXPWDLENGTH) 
+        lc.setChar(LOWERLEDROW, CurPos, '_', false);
       else {
         if (TestPassCodeLength % 2 == 1)
-          lc.setChar(1,i,'-',false); 
+          lc.setChar(LOWERLEDROW, i, '-', false); 
         else
-          lc.setChar(1,i,' ',false);     
+          lc.setChar(LOWERLEDROW, i, ' ', false);     
       }
     }
   }
@@ -958,36 +951,36 @@ void ShowSetLock(void *) {
 
 // Set every single segments to ON at full brightness, used only if the Knob is not correctly set
 void DisplayTestPatern(void *) {
-  lc.setIntensity(0,0xf);
-  lc.setIntensity(1,0xf);
+  lc.setIntensity(UPPERLEDROW, LEDMAXINTENSITY);
+  lc.setIntensity(LOWERLEDROW, LEDMAXINTENSITY);
 
-  lc.shutdown(0,false);
-  lc.shutdown(1,false);
+  lc.shutdown(UPPERLEDROW, false);
+  lc.shutdown(LOWERLEDROW, false);
 
-  lc.setRow(0,0,SpecChar[TEST]);
-  lc.setRow(0,1,SpecChar[TEST]);
-  lc.setRow(0,2,SpecChar[TEST]);
-  lc.setRow(0,3,SpecChar[TEST]);
-  lc.setRow(0,4,SpecChar[TEST]);
-  lc.setRow(0,5,SpecChar[TEST]);
-  lc.setRow(0,6,SpecChar[TEST]);
-  lc.setRow(0,7,SpecChar[TEST]);
+  lc.setRow(UPPERLEDROW, 0, SpecChar[CHR_TEST]);
+  lc.setRow(UPPERLEDROW, 1, SpecChar[CHR_TEST]);
+  lc.setRow(UPPERLEDROW, 2, SpecChar[CHR_TEST]);
+  lc.setRow(UPPERLEDROW, 3, SpecChar[CHR_TEST]);
+  lc.setRow(UPPERLEDROW, 4, SpecChar[CHR_TEST]);
+  lc.setRow(UPPERLEDROW, 5, SpecChar[CHR_TEST]);
+  lc.setRow(UPPERLEDROW, 6, SpecChar[CHR_TEST]);
+  lc.setRow(UPPERLEDROW, 7, SpecChar[CHR_TEST]);
 
-  lc.setRow(1,0,SpecChar[TEST]);
-  lc.setRow(1,1,SpecChar[TEST]);
-  lc.setRow(1,2,SpecChar[TEST]);
-  lc.setRow(1,3,SpecChar[TEST]);
-  lc.setRow(1,4,SpecChar[TEST]);
-  lc.setRow(1,5,SpecChar[TEST]);
-  lc.setRow(1,6,SpecChar[TEST]);
-  //lc.setRow(1,7,SpecChar[TEST]);
+  lc.setRow(LOWERLEDROW, 0, SpecChar[CHR_TEST]);
+  lc.setRow(LOWERLEDROW, 1, SpecChar[CHR_TEST]);
+  lc.setRow(LOWERLEDROW, 2, SpecChar[CHR_TEST]);
+  lc.setRow(LOWERLEDROW, 3, SpecChar[CHR_TEST]);
+  lc.setRow(LOWERLEDROW, 4, SpecChar[CHR_TEST]);
+  lc.setRow(LOWERLEDROW, 5, SpecChar[CHR_TEST]);
+  lc.setRow(LOWERLEDROW, 6, SpecChar[CHR_TEST]);
+  //lc.setRow(LOWERLEDROW, 7, SpecChar[CHR_TEST]);
 
   digitalWrite(LedTickPin, HIGH);
   digitalWrite(LedLockPin, HIGH);
 
-  //Remove ASCII values left from UpdateModes
-  if (ToggleCurChar <= 0x7F) {
-    ToggleCurChar = 0b10000000; // ' .'
+  //Remove ASCII values left from UpdateModes (anything without a dot)
+  if (ToggleCurChar < SpecChar[CHR_DOT]) {
+    ToggleCurChar = SpecChar[CHR_DOT]; // ' .'
   }
 
   // React to a new Keypress
@@ -995,35 +988,35 @@ void DisplayTestPatern(void *) {
     NewKeyPress = false; // Consume the Keypress
 
     switch (KeyPressVal) {
-      case 'U':
-        ToggleCurChar = 0b10111110; //'U.';
+      case KEY_UP:
+        ToggleCurChar = SpecChar[CHR_Ud]; //'U.';
         break;
-      case 'R':
-        ToggleCurChar = 0b10000101; // 'r.'
+      case KEY_DOWN:
+        ToggleCurChar = SpecChar[CHR_dd]; //'d.';
         break;
-      case 'D':
-        ToggleCurChar = 0b10111101; //'d.';
+      case KEY_LEFT:
+        ToggleCurChar = SpecChar[CHR_Ld]; //'L.';
         break;
-      case 'L':
-        ToggleCurChar = 0b10001110; //'L.';
+      case KEY_RIGHT:
+        ToggleCurChar = SpecChar[CHR_rd]; // 'r.'
         break;
-      case 'C':
-        ToggleCurChar = 0b11001110; //'C.';
+      case KEY_CLEAR:
+        ToggleCurChar = SpecChar[CHR_Cd]; //'C.';
         break;
-      case 'E':
-        ToggleCurChar = 0b11001111; //'E.';
+      case KEY_ENTER:
+        ToggleCurChar = SpecChar[CHR_Ed]; //'E.';
         break;
       default: 
-        ToggleCurChar = SpecChar[(KeyPressVal - '0') + 10]; // N.
+        ToggleCurChar = SpecChar[(KeyPressVal - '0') + CHR_DOTOFFET]; // N.
     }
 
   }
 
   // Display the current state
   if(ToggleCurVal)
-    lc.setRow(1,7,ToggleCurChar);
+    lc.setRow(LOWERLEDROW, LEDCOL0, ToggleCurChar);
   else
-    lc.setRow(1,7,SpecChar[TEST]);
+    lc.setRow(LOWERLEDROW, LEDCOL0, SpecChar[CHR_TEST]);
 
 }
 
@@ -1031,53 +1024,3 @@ void DisplayTestPatern(void *) {
 //     #####     #####     #####     #####     #####
 //     #####     #####     #####     #####     #####
 
-// Debug/Test...Now unused
-void UserShowCounter(void *) {
-/*
-  int display_acc = cmp;
-  int display_step;
-*/
-
-/*
-  for (int i=4; i>=0; i--) {
-    if(i>0) {
-      display_step = display_acc-display_acc%round(pow(10,i));
-      lc.setDigit(0,i,display_step/round(pow(10,i)),false);
-      display_acc = display_acc-display_step;
-    } else {
-      lc.setDigit(0,i,display_acc,false);
-    }
-  }
-
-//Serial.println(cmp);
-
-  display_acc = cmp;
-
-  display_step = display_acc-display_acc%10000;
-  lc.setDigit(1,4,display_step/10000,false);
-  display_acc = display_acc-display_step;
-
-  display_step = display_acc-display_acc%1000;
-  lc.setDigit(1,3,display_step/1000,false);
-  display_acc = display_acc-display_step;
-
-  display_step = display_acc-display_acc%100;
-  lc.setDigit(1,2,(display_step/100),false);
-  display_acc = display_acc-display_step;
-
-  display_step = display_acc-display_acc%10;
-  lc.setDigit(1,1,(display_step/10),false);
-  display_acc = display_acc-display_step;
-
-  lc.setDigit(1,0,display_acc,false);
-
-  cmp++;
-  if(cmp>30000) {
-    cmp=0;
-  }
-*/
-}
-
-//     #####     #####     #####     #####     #####
-//     #####     #####     #####     #####     #####
-//     #####     #####     #####     #####     #####
