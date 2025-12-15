@@ -52,13 +52,17 @@ const int EEPROM_LEDINTENSITY = 16;
 bool LockIndicatorDot = false; // Blinking dot as a lock indicator
 
 //Buffer used for serial data recv
-const int BufferSize = 32;  
-char RecvBuff[BufferSize];
+const unsigned int BUFFERSIZE = 32;
+char RecvBuff[BUFFERSIZE];
 bool BuffAvailable = false;
 
+enum DisplayModes { M_BLINKDOT, M_TIME, M_TZALTTIME, M_DATESHORT, M_DATEISO, M_CHRONO, M_COUNTDOWN, M_TESTLOW, M_TESTHIGH };
+const byte DM_DATEISO   = 0;
+const byte DM_DATESHORT = 1;
+
 // Control Knob related variables
-int KnobValue   = 0;  // Most recent value for Knob position, once "debounced" it is used to set DisplayMode
-int DisplayMode = 0;  // The end result of the knob position is available here
+DisplayModes KnobValue   = M_BLINKDOT;  // Most recent value for Knob position, once "debounced" it is used to set DisplayMode
+DisplayModes DisplayMode = M_BLINKDOT;  // The end result of the knob position is available here
 
 // Inputs
 const int ClockTickPin = 2;  // Pin 2 receives the PPS (Pulse Per Second) from the Main Clock and triggers an Interrupt
@@ -83,26 +87,46 @@ const int KnobPin8     = 12;
 
 //lookup table for bitmask values for numbers without dot (first row), numbers with dot (second row) and special chars (third row)
                        // 0          1          2          3          4          5          6          7          8          9
-const int SpecChar[29] = {0b01111110,0b00110000,0b01101101,0b01111001,0b00110011,0b01011011,0b01011111,0b01110000,0b01111111,0b01111011,
+const int SpecChar[31] = {0b01111110,0b00110000,0b01101101,0b01111001,0b00110011,0b01011011,0b01011111,0b01110000,0b01111111,0b01111011,
                           0b11111110,0b10110000,0b11101101,0b11111001,0b10110011,0b11011011,0b11011111,0b11110000,0b11111111,0b11111011,
-                          0b00000000,0b10000000,0b00001000,0b00000001,0b00110111,0b01110111,0b01100111,0b00111110,0b11111111};
-                       // *          .          _          -          H          A          P          V          #
+                          0b00000000,0b10000000,0b00001000,0b00000001,0b00110111,0b01110111,0b01100111,0b00011101,0b00010000,0b00010101,0b01011110};
+                       //            .          _          -          H          A          P          o          i          n          G
+                         
+                       
 // Alias for indexes in the third row of SpecChar
-const int BLANK = 20;
-const int DOT   = 21;
-const int UNDER = 22;
-const int BAR   = 23;
-const int CH_H  = 24;
-const int CH_A  = 25;
-const int CH_P  = 26;
-const int CH_V  = 27;
-const int TEST  = 28;
+const unsigned int CHR_DOTOFFET = 10;
+const unsigned int CHR_TEST     = 18;
+const unsigned int CHR_BLANK    = 20;
+const unsigned int CHR_DOT      = 21;
+const unsigned int CHR_UNDER    = 22;
+const unsigned int CHR_BAR      = 23;
+const unsigned int CHR_H        = 24;
+const unsigned int CHR_A        = 25;
+const unsigned int CHR_P        = 26;
+const unsigned int CHR_o        = 27;
+const unsigned int CHR_i        = 28;
+const unsigned int CHR_n        = 29;
+const unsigned int CHR_G        = 30;
 
 // Timer used in setup()
 auto timer = timer_create_default();
 
 // Set the pinout for the LED segment display
 LedControl lc=LedControl(4,13,3,1);
+
+// Misc settings
+const unsigned int LEDROWID = 0;
+const unsigned int LEDMAXINTENSITY = 0xf;
+const unsigned int LEDDEFAULTINTENSITY = 0x8;
+const unsigned int LEDOFFINTENSITY = -1;
+const unsigned int LEDCOL0 = 7;
+const unsigned int LEDCOL1 = 6;
+const unsigned int LEDCOL2 = 5;
+const unsigned int LEDCOL3 = 4;
+const unsigned int LEDCOL4 = 3;
+const unsigned int LEDCOL5 = 2;
+const unsigned int LEDCOL6 = 1;
+const unsigned int LEDCOL7 = 0;
 
 //     #####     #####     #####     #####     #####
 //     #####     #####     #####     #####     #####
@@ -127,26 +151,26 @@ void setup() {
   Serial.begin(9600);
 
   // The MAX72XX is in power-saving mode on startup, we have to do a wakeup call
-  lc.shutdown(0, false);
+  lc.shutdown(LEDROWID, false);
   // Set the brightness to a medium values
-  lc.setIntensity(0, LedIntensity);
+  lc.setIntensity(LEDROWID, LedIntensity);
   // And clear the display
-  lc.clearDisplay(0);
+  lc.clearDisplay(LEDROWID);
 
   LedIntensity = EEPROM.read(EEPROM_LEDINTENSITY);
-  if (LedIntensity > 15 || LedIntensity < 0 ) {
-    LedIntensity = 8;
-    EEPROM.update(EEPROM_LEDINTENSITY, 8);
+  if (LedIntensity > LEDMAXINTENSITY || LedIntensity < 0 ) {
+    LedIntensity = LEDDEFAULTINTENSITY;
+    EEPROM.update(EEPROM_LEDINTENSITY, LEDDEFAULTINTENSITY);
   }
 
-  lc.setChar(0,7,'L',false);
-  lc.setRow(0,6,0b00011101); // o
-   lc.setChar(0,5,'A',false); 
-  lc.setChar(0,4,'d',false);
-  lc.setRow(0,3,0b00010000); // i
-  lc.setRow(0,2,0b00010101); // n
-  lc.setRow(0,1,0b01011110); // G
-  lc.setChar(0,0,' ',false);
+  lc.setChar(LEDROWID, LEDCOL0, 'L', false);
+  lc.setRow(LEDROWID,  LEDCOL1, SpecChar[CHR_o]); // o
+  lc.setChar(LEDROWID, LEDCOL2, 'A', false); 
+  lc.setChar(LEDROWID, LEDCOL3, 'd', false);
+  lc.setRow(LEDROWID,  LEDCOL4, SpecChar[CHR_i]); // i
+  lc.setRow(LEDROWID,  LEDCOL5, SpecChar[CHR_n]); // n
+  lc.setRow(LEDROWID,  LEDCOL6, SpecChar[CHR_G]); // G
+  lc.setChar(LEDROWID, LEDCOL7, ' ', false);
 
   delay(1000);
 
@@ -315,7 +339,7 @@ void ClockTick(void *) {
 bool ReadSerial(void *) {
   char Recv;
   static byte NbByte = 0;
-  byte MaxIter = 32;
+  byte MaxIter = BUFFERSIZE;
 
   while( !BuffAvailable && MaxIter != 0 && Serial.available() > 0 ) {
     Recv = Serial.read();
@@ -324,8 +348,8 @@ bool ReadSerial(void *) {
       RecvBuff[NbByte] = Recv;
       NbByte++;
 
-      if( NbByte >= BufferSize )
-        NbByte = BufferSize - 1;
+      if( NbByte >= BUFFERSIZE )
+        NbByte = BUFFERSIZE - 1;
     } else {
       RecvBuff[NbByte] = '\0'; // terminate the string
       NbByte = 0;
@@ -356,7 +380,7 @@ int cStringToInt(const char *Source) {
 
 // Runs every 50ms, keep everything up to date by listening on Serial
 bool UpdateRemote(void *) {
-  char CharBuff[BufferSize], MsgType[16], MsgVal[24], MsgElem[12], MsgSubElem[8];
+  char CharBuff[BUFFERSIZE], MsgType[16], MsgVal[24], MsgElem[12], MsgSubElem[8];
   char * TokenPos;
   char * TokenEndPos;
 
@@ -364,8 +388,8 @@ bool UpdateRemote(void *) {
   if( BuffAvailable ) {
 
     //Copy the recv buffer to a char array for processing
-    strncpy(CharBuff, RecvBuff, BufferSize);
-    CharBuff[BufferSize-1] = '\0'; //Force a NULL char at the end for safety
+    strncpy(CharBuff, RecvBuff, BUFFERSIZE);
+    CharBuff[BUFFERSIZE-1] = '\0'; //Force a NULL char at the end for safety
     BuffAvailable = false;    
 
       //Serial.println(CharBuff);
@@ -557,8 +581,8 @@ bool UpdateRemote(void *) {
 
             } else if (strcmp(MsgElem, "DIM") == 0 ) {
               LedIntensity = cStringToInt(MsgSubElem); //atoi(MsgSubElem); //sscanf(MsgSubElem, "%d", &LedIntensity);
-              LedIntensity = max(min(LedIntensity, 0xf), 0x0);
-              lc.setIntensity(0,LedIntensity);
+              LedIntensity = max(min(LedIntensity, LEDMAXINTENSITY), 0x0);
+              lc.setIntensity(LEDROWID, LedIntensity);
               EEPROM.update(EEPROM_LEDINTENSITY, LedIntensity);
             } 
           }
@@ -616,26 +640,26 @@ bool UpdateChrono(void *) {
 
 // Runs every 100ms, depending on the Knob position, call the appropriate display routine
 bool UpdateDisplay(void *) {
-  int NewKnobValue = 0;
+  int NewKnobValue = M_BLINKDOT;
 
   if (digitalRead(KnobPin1) == LOW)
-    NewKnobValue = 0;
+    NewKnobValue = M_BLINKDOT;
   else if (digitalRead(KnobPin2) == LOW)
-    NewKnobValue = 1;
+    NewKnobValue = M_TIME;
   else if (digitalRead(KnobPin3) == LOW)
-    NewKnobValue = 2;
+    NewKnobValue = M_TZALTTIME;
   else if (digitalRead(KnobPin4) == LOW)
-    NewKnobValue = 3;
+    NewKnobValue = M_DATESHORT;
   else if (digitalRead(KnobPin5) == LOW)
-    NewKnobValue = 4;
+    NewKnobValue = M_DATEISO;
   else if (digitalRead(KnobPin6) == LOW)
-    NewKnobValue = 5;
+    NewKnobValue = M_CHRONO;
   else if (digitalRead(KnobPin7) == LOW)
-    NewKnobValue = 6;
+    NewKnobValue = M_COUNTDOWN;
   else if (digitalRead(KnobPin8) == LOW)
-    NewKnobValue = 7;
+    NewKnobValue = M_TESTLOW;
   else
-    NewKnobValue = 8;
+    NewKnobValue = M_TESTHIGH;
 
   // New val compared with previous val to "debounce" the knob
   if(NewKnobValue == KnobValue) 
@@ -645,19 +669,19 @@ bool UpdateDisplay(void *) {
   //Serial.println(DisplayMode);
 
   switch(DisplayMode) {
-    case 0:   DisplayBlinkingDot(NULL);  break;
-    case 1:   DisplayCurrentTime(NULL);  break;
-    case 2:   DisplayTZAltTime(NULL);    break;
-    case 3:   DisplayCurrentDate(1);          IsChronoVisible = false;  break;
-    case 4:   DisplayCurrentDate(0);          IsChronoVisible = false;  break;
-    case 5:   DisplayCurrentChrono(NULL);     IsChronoVisible = true;   break;
-    case 6:   DisplayCurrentCountDown(NULL);  IsChronoVisible = false;  break;
-    case 7:   DisplayTestPatern(1);           IsChronoVisible = false;  break;
-    default:  DisplayTestPatern(0);           IsChronoVisible = false;  break;
+    case M_BLINKDOT:  DisplayBlinkingDot(NULL);  break;
+    case M_TIME:      DisplayCurrentTime(NULL);  break;
+    case M_TZALTTIME: DisplayTZAltTime(NULL);    break;
+    case M_DATESHORT: DisplayCurrentDate(DM_DATESHORT); IsChronoVisible = false;  break;
+    case M_DATEISO:   DisplayCurrentDate(DM_DATEISO);   IsChronoVisible = false;  break;
+    case M_CHRONO:    DisplayCurrentChrono(NULL);       IsChronoVisible = true;   break;
+    case M_COUNTDOWN: DisplayCurrentCountDown(NULL);    IsChronoVisible = false;  break;
+    case M_TESTLOW:   DisplayTestPatern(false);         IsChronoVisible = false;  break;
+    default:          DisplayTestPatern(true);          IsChronoVisible = false;  break;
   }
 
-  if (LedIntensity == -1)
-    lc.shutdown(0,true);
+  if (LedIntensity == LEDOFFINTENSITY)
+    lc.shutdown(LEDROWID, true);
   
   LockIndicatorDot = false;
 
